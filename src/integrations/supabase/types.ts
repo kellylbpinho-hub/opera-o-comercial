@@ -14,13 +14,503 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cities: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          is_kapazi_allowed: boolean | null
+          name: string
+          priority: string
+          region_id: string
+          uf: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_kapazi_allowed?: boolean | null
+          name: string
+          priority: string
+          region_id: string
+          uf?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_kapazi_allowed?: boolean | null
+          name?: string
+          priority?: string
+          region_id?: string
+          uf?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cities_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          address: string | null
+          category: string
+          channel: string | null
+          city_id: string | null
+          city_name: string | null
+          company_name: string
+          company_name_normalized: string | null
+          contact_name: string | null
+          created_at: string
+          days_without_buying: number | null
+          id: string
+          industry_id: string
+          industry_mode_id: string | null
+          instagram: string | null
+          last_order_date: string | null
+          neighborhood: string | null
+          niche: string | null
+          notes: string | null
+          owner_user_id: string | null
+          phone_normalized: string | null
+          phone_raw: string | null
+          region_name: string | null
+          source: string | null
+          status: string
+          uf: string | null
+          website: string | null
+          whatsapp_link: string | null
+        }
+        Insert: {
+          address?: string | null
+          category: string
+          channel?: string | null
+          city_id?: string | null
+          city_name?: string | null
+          company_name: string
+          company_name_normalized?: string | null
+          contact_name?: string | null
+          created_at?: string
+          days_without_buying?: number | null
+          id?: string
+          industry_id: string
+          industry_mode_id?: string | null
+          instagram?: string | null
+          last_order_date?: string | null
+          neighborhood?: string | null
+          niche?: string | null
+          notes?: string | null
+          owner_user_id?: string | null
+          phone_normalized?: string | null
+          phone_raw?: string | null
+          region_name?: string | null
+          source?: string | null
+          status?: string
+          uf?: string | null
+          website?: string | null
+          whatsapp_link?: string | null
+        }
+        Update: {
+          address?: string | null
+          category?: string
+          channel?: string | null
+          city_id?: string | null
+          city_name?: string | null
+          company_name?: string
+          company_name_normalized?: string | null
+          contact_name?: string | null
+          created_at?: string
+          days_without_buying?: number | null
+          id?: string
+          industry_id?: string
+          industry_mode_id?: string | null
+          instagram?: string | null
+          last_order_date?: string | null
+          neighborhood?: string | null
+          niche?: string | null
+          notes?: string | null
+          owner_user_id?: string | null
+          phone_normalized?: string | null
+          phone_raw?: string | null
+          region_name?: string | null
+          source?: string | null
+          status?: string
+          uf?: string | null
+          website?: string | null
+          whatsapp_link?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_industry_mode_id_fkey"
+            columns: ["industry_mode_id"]
+            isOneToOne: false
+            referencedRelation: "industry_modes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_batch_items: {
+        Row: {
+          batch_id: string
+          contact_id: string
+          created_at: string
+          id: string
+          lane: string
+          order_index: number
+        }
+        Insert: {
+          batch_id: string
+          contact_id: string
+          created_at?: string
+          id?: string
+          lane?: string
+          order_index?: number
+        }
+        Update: {
+          batch_id?: string
+          contact_id?: string
+          created_at?: string
+          id?: string
+          lane?: string
+          order_index?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_batch_items_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "daily_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_batch_items_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_batches: {
+        Row: {
+          batch_date: string
+          city_id: string
+          city_name: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          industry_id: string
+          industry_mode_id: string | null
+          notes: string | null
+          target_active: number | null
+          target_inactive: number | null
+          target_new_maps: number | null
+        }
+        Insert: {
+          batch_date?: string
+          city_id: string
+          city_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          industry_id: string
+          industry_mode_id?: string | null
+          notes?: string | null
+          target_active?: number | null
+          target_inactive?: number | null
+          target_new_maps?: number | null
+        }
+        Update: {
+          batch_date?: string
+          city_id?: string
+          city_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          industry_id?: string
+          industry_mode_id?: string | null
+          notes?: string | null
+          target_active?: number | null
+          target_inactive?: number | null
+          target_new_maps?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_batches_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_batches_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_batches_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_batches_industry_mode_id_fkey"
+            columns: ["industry_mode_id"]
+            isOneToOne: false
+            referencedRelation: "industry_modes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      industries: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          key: string
+          name: string
+          territory_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          key: string
+          name: string
+          territory_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          key?: string
+          name?: string
+          territory_type?: string
+        }
+        Relationships: []
+      }
+      industry_modes: {
+        Row: {
+          id: string
+          industry_id: string
+          is_active: boolean | null
+          key: string
+          name: string
+        }
+        Insert: {
+          id?: string
+          industry_id: string
+          is_active?: boolean | null
+          key: string
+          name: string
+        }
+        Update: {
+          id?: string
+          industry_id?: string
+          is_active?: boolean | null
+          key?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "industry_modes_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interactions: {
+        Row: {
+          channel: string
+          contact_id: string
+          created_at: string
+          id: string
+          message_text: string | null
+          next_action_at: string | null
+          next_action_type: string | null
+          notes: string | null
+          outcome: string | null
+          reply_at: string | null
+          reply_text: string | null
+          sent_at: string | null
+          stage: string | null
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          contact_id: string
+          created_at?: string
+          id?: string
+          message_text?: string | null
+          next_action_at?: string | null
+          next_action_type?: string | null
+          notes?: string | null
+          outcome?: string | null
+          reply_at?: string | null
+          reply_text?: string | null
+          sent_at?: string | null
+          stage?: string | null
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          contact_id?: string
+          created_at?: string
+          id?: string
+          message_text?: string | null
+          next_action_at?: string | null
+          next_action_type?: string | null
+          notes?: string | null
+          outcome?: string | null
+          reply_at?: string | null
+          reply_text?: string | null
+          sent_at?: string | null
+          stage?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id: string
+          role?: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          role?: string
+        }
+        Relationships: []
+      }
+      regions: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      templates: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          industry_id: string
+          industry_mode_id: string | null
+          is_active: boolean | null
+          stage: string
+          template_text: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          industry_id: string
+          industry_mode_id?: string | null
+          is_active?: boolean | null
+          stage: string
+          template_text: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          industry_id?: string
+          industry_mode_id?: string | null
+          is_active?: boolean | null
+          stage?: string
+          template_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "templates_industry_id_fkey"
+            columns: ["industry_id"]
+            isOneToOne: false
+            referencedRelation: "industries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "templates_industry_mode_id_fkey"
+            columns: ["industry_mode_id"]
+            isOneToOne: false
+            referencedRelation: "industry_modes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
