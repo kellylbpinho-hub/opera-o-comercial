@@ -155,6 +155,10 @@ export default function DailyBatchPage() {
       const label = LANES.find(l => l.key === lane)?.label ?? lane;
       toast.success(`Movido para "${label}"`);
       queryClient.invalidateQueries({ queryKey: ["batch-items", todayBatch?.id] });
+      // Also refresh dashboard counters
+      queryClient.invalidateQueries({ queryKey: ["dashboard-qualified"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-by-assistant"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-by-city"] });
     },
     onError: (err: any, _vars, context) => {
       if (context?.previous) {
