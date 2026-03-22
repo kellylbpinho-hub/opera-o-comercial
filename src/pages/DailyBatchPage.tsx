@@ -139,10 +139,29 @@ export default function DailyBatchPage() {
 
   const updateLaneMutation = useMutation({
     mutationFn: async ({ itemId, lane }: { itemId: string; lane: string }) => {
-      const { error } = await supabase.from("daily_batch_items").update({ lane }).eq("id", itemId);
+      const { data, error } = await supabase.from("daily_batch_items").update({ lane }).eq("id", itemId).select().single();
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["batch-items"] }),
+    onMutate: async ({ itemId, lane }) => {
+      await queryClient.cancelQueries({ queryKey: ["batch-items", todayBatch?.id] });
+      const previous = queryClient.getQueryData(["batch-items", todayBatch?.id]);
+      queryClient.setQueryData(["batch-items", todayBatch?.id], (old: any[] | undefined) =>
+        old?.map(item => item.id === itemId ? { ...item, lane } : item) ?? []
+      );
+      return { previous };
+    },
+    onSuccess: (_data, { lane }) => {
+      const label = LANES.find(l => l.key === lane)?.label ?? lane;
+      toast.success(`Movido para "${label}"`);
+      queryClient.invalidateQueries({ queryKey: ["batch-items", todayBatch?.id] });
+    },
+    onError: (err: any, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["batch-items", todayBatch?.id], context.previous);
+      }
+      toast.error(err.message || "Erro ao mover card");
+    },
   });
 
   const copyMessage = (contact: any) => {
