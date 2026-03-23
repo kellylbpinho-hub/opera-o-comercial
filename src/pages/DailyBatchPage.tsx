@@ -40,8 +40,7 @@ export default function DailyBatchPage() {
     queryKey: ["today-batch", industryId, today],
     queryFn: async () => {
       if (!industryId) return null;
-      let q = supabase.from("daily_batches").select("*").eq("industry_id", industryId).eq("batch_date", today);
-      const { data } = await q;
+      const { data } = await supabase.from("daily_batches").select("*").eq("industry_id", industryId).eq("batch_date", today);
       return data && data.length > 0 ? data[0] : null;
     },
     enabled: !!industryId,
@@ -63,7 +62,6 @@ export default function DailyBatchPage() {
       const city = cities?.find(c => c.id === selectedCity);
       if (!city) throw new Error("Cidade inválida.");
 
-      // Create batch
       const { data: batch, error: batchError } = await supabase.from("daily_batches").insert({
         industry_id: industryId,
         industry_mode_id: modeId || null,
@@ -72,9 +70,11 @@ export default function DailyBatchPage() {
         batch_date: today,
         created_by: user?.id,
       }).select().single();
-      if (batchError) throw batchError;
+      if (batchError) {
+        if (batchError.code === "23505") throw new Error("Já existe um lote para esta cidade e assistente hoje.");
+        throw batchError;
+      }
 
-      // Get contacts: 15 NOVO_MAPS, 10 INATIVO, 5 ATIVO
       const categories = [
         { cat: "NOVO_MAPS", target: 15 },
         { cat: "INATIVO", target: 10 },
@@ -85,29 +85,25 @@ export default function DailyBatchPage() {
       const items: any[] = [];
 
       for (const { cat, target } of categories) {
-        // First try selected city
         let q = supabase.from("contacts").select("id")
           .eq("industry_id", industryId)
           .eq("category", cat)
           .eq("city_id", selectedCity)
           .eq("status", "NAO_CONTATADO")
+          .is("deleted_at", null)
           .limit(target);
         let { data: cityContacts } = await q;
         const found = cityContacts ?? [];
 
-        // If not enough, try other cities in territory
         if (found.length < target) {
           const remaining = target - found.length;
-          const foundIds = found.map(c => c.id);
           let q2 = supabase.from("contacts").select("id")
             .eq("industry_id", industryId)
             .eq("category", cat)
             .eq("status", "NAO_CONTATADO")
+            .is("deleted_at", null)
             .neq("city_id", selectedCity)
             .limit(remaining);
-          if (foundIds.length > 0) {
-            // Can't use .not('id', 'in', foundIds) easily, so just get more
-          }
           const { data: otherContacts } = await q2;
           found.push(...(otherContacts ?? []));
         }
@@ -137,11 +133,35 @@ export default function DailyBatchPage() {
     onError: (err: any) => toast.error(err.message),
   });
 
+  const scheduleFollowup = async (contactId: string, stage: string, outcome?: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("schedule-followups", {
+        body: { contact_id: contactId, user_id: user?.id, stage, outcome },
+      });
+      if (error) console.error("Follow-up error:", error);
+      else if (data?.scheduled) toast.info(`Follow-up ${data.next_stage} agendado`);
+    } catch (e) {
+      console.error("Follow-up scheduling failed:", e);
+    }
+  };
+
   const updateLaneMutation = useMutation({
-    mutationFn: async ({ itemId, lane }: { itemId: string; lane: string }) => {
+    mutationFn: async ({ itemId, lane, contactId, currentLane }: { itemId: string; lane: string; contactId?: string; currentLane?: string }) => {
       const { data, error } = await supabase.from("daily_batch_items").update({ lane }).eq("id", itemId).select().single();
       if (error) throw error;
-      return data;
+
+      // Also update contact status
+      const statusMap: Record<string, string> = {
+        CONTATADO: "CONTATADO",
+        RESPONDEU: "RESPONDEU",
+        QUALIFICADO: "QUALIFICADO",
+        SEM_INTERESSE: "SEM_INTERESSE",
+      };
+      if (statusMap[lane] && contactId) {
+        await supabase.from("contacts").update({ status: statusMap[lane] }).eq("id", contactId);
+      }
+
+      return { data, lane, contactId, currentLane };
     },
     onMutate: async ({ itemId, lane }) => {
       await queryClient.cancelQueries({ queryKey: ["batch-items", todayBatch?.id] });
@@ -151,14 +171,24 @@ export default function DailyBatchPage() {
       );
       return { previous };
     },
-    onSuccess: (_data, { lane }) => {
-      const label = LANES.find(l => l.key === lane)?.label ?? lane;
+    onSuccess: async (result) => {
+      const label = LANES.find(l => l.key === result.lane)?.label ?? result.lane;
       toast.success(`Movido para "${label}"`);
       queryClient.invalidateQueries({ queryKey: ["batch-items", todayBatch?.id] });
-      // Also refresh dashboard counters
-      queryClient.invalidateQueries({ queryKey: ["dashboard-qualified"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-by-assistant"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-by-city"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+
+      // Schedule follow-up when moving to CONTATADO
+      if (result.lane === "CONTATADO" && result.contactId) {
+        await scheduleFollowup(result.contactId, "D0");
+      }
+      // Schedule next follow-up on RESPONDEU (outcome not negative)
+      if (result.lane === "RESPONDEU" && result.contactId) {
+        await scheduleFollowup(result.contactId, "D2");
+      }
+      // Stop follow-ups on SEM_INTERESSE
+      if (result.lane === "SEM_INTERESSE" && result.contactId) {
+        // No follow-up scheduled - outcome stops cadence
+      }
     },
     onError: (err: any, _vars, context) => {
       if (context?.previous) {
@@ -202,7 +232,6 @@ export default function DailyBatchPage() {
         </p>
       )}
 
-      {/* Kanban */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
         {LANES.map(lane => {
           const items = batchItems?.filter(i => i.lane === lane.key) ?? [];
@@ -234,20 +263,20 @@ export default function DailyBatchPage() {
                               </a>
                             </Button>
                           )}
-                          {lane.key !== "CONTATADO" && (
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateLaneMutation.mutate({ itemId: item.id, lane: "CONTATADO" })}>
+                          {lane.key === "A_CONTATAR" && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateLaneMutation.mutate({ itemId: item.id, lane: "CONTATADO", contactId: contact.id, currentLane: lane.key })}>
                               <CheckCircle className="h-3 w-3 mr-1" />Contatado
                             </Button>
                           )}
                         </div>
                         {lane.key === "CONTATADO" && (
                           <div className="flex gap-1">
-                            <Button size="sm" variant="outline" className="h-6 text-xs" onClick={() => updateLaneMutation.mutate({ itemId: item.id, lane: "RESPONDEU" })}>Respondeu</Button>
-                            <Button size="sm" variant="outline" className="h-6 text-xs" onClick={() => updateLaneMutation.mutate({ itemId: item.id, lane: "SEM_INTERESSE" })}>Sem interesse</Button>
+                            <Button size="sm" variant="outline" className="h-6 text-xs" onClick={() => updateLaneMutation.mutate({ itemId: item.id, lane: "RESPONDEU", contactId: contact.id, currentLane: lane.key })}>Respondeu</Button>
+                            <Button size="sm" variant="outline" className="h-6 text-xs" onClick={() => updateLaneMutation.mutate({ itemId: item.id, lane: "SEM_INTERESSE", contactId: contact.id, currentLane: lane.key })}>Sem interesse</Button>
                           </div>
                         )}
                         {lane.key === "RESPONDEU" && (
-                          <Button size="sm" variant="outline" className="h-6 text-xs w-full" onClick={() => updateLaneMutation.mutate({ itemId: item.id, lane: "QUALIFICADO" })}>Qualificar</Button>
+                          <Button size="sm" variant="outline" className="h-6 text-xs w-full" onClick={() => updateLaneMutation.mutate({ itemId: item.id, lane: "QUALIFICADO", contactId: contact.id, currentLane: lane.key })}>Qualificar</Button>
                         )}
                       </CardContent>
                     </Card>
