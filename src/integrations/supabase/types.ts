@@ -67,6 +67,7 @@ export type Database = {
           contact_name: string | null
           created_at: string
           days_without_buying: number | null
+          deleted_at: string | null
           id: string
           industry_id: string
           industry_mode_id: string | null
@@ -96,6 +97,7 @@ export type Database = {
           contact_name?: string | null
           created_at?: string
           days_without_buying?: number | null
+          deleted_at?: string | null
           id?: string
           industry_id: string
           industry_mode_id?: string | null
@@ -125,6 +127,7 @@ export type Database = {
           contact_name?: string | null
           created_at?: string
           days_without_buying?: number | null
+          deleted_at?: string | null
           id?: string
           industry_id?: string
           industry_mode_id?: string | null
@@ -504,6 +507,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

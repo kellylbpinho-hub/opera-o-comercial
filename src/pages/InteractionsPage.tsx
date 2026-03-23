@@ -1,23 +1,30 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useIndustry } from "@/contexts/IndustryContext";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+
+const PAGE_SIZE = 50;
 
 export default function InteractionsPage() {
+  const { industryId } = useIndustry();
   const [filter, setFilter] = useState<"overdue" | "week">("overdue");
+  const [page, setPage] = useState(0);
 
-  const { data: interactions } = useQuery({
-    queryKey: ["interactions-actions", filter],
+  const { data: result } = useQuery({
+    queryKey: ["interactions-actions", filter, page, industryId],
     queryFn: async () => {
       const now = new Date();
       const weekLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-      let q = supabase.from("interactions").select("*, contacts(company_name, city_name, category)")
+      let q = supabase.from("interactions").select("*, contacts(company_name, city_name, category, industry_id)", { count: "exact" })
         .not("next_action_at", "is", null)
         .order("next_action_at", { ascending: true })
-        .limit(100);
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (filter === "overdue") {
         q = q.lte("next_action_at", now.toISOString());
@@ -25,16 +32,26 @@ export default function InteractionsPage() {
         q = q.lte("next_action_at", weekLater.toISOString());
       }
 
-      const { data } = await q;
-      return data ?? [];
+      const { data, count } = await q;
+
+      // Filter by industry client-side if needed
+      let filtered = data ?? [];
+      if (industryId) {
+        filtered = filtered.filter((i: any) => i.contacts?.industry_id === industryId);
+      }
+
+      return { interactions: filtered, total: count ?? 0 };
     },
   });
+
+  const interactions = result?.interactions ?? [];
+  const totalPages = Math.ceil((result?.total ?? 0) / PAGE_SIZE);
 
   return (
     <div className="space-y-4 animate-fade-in">
       <h1 className="text-2xl font-bold tracking-tight">Interações / Próximas Ações</h1>
 
-      <Select value={filter} onValueChange={v => setFilter(v as any)}>
+      <Select value={filter} onValueChange={v => { setFilter(v as any); setPage(0); }}>
         <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
         <SelectContent>
           <SelectItem value="overdue">Vencidas</SelectItem>
@@ -56,7 +73,7 @@ export default function InteractionsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {interactions?.map(i => {
+            {interactions.map(i => {
               const contact = i.contacts as any;
               const isOverdue = i.next_action_at && new Date(i.next_action_at) < new Date();
               return (
@@ -77,12 +94,22 @@ export default function InteractionsPage() {
                 </TableRow>
               );
             })}
-            {(!interactions || interactions.length === 0) && (
+            {interactions.length === 0 && (
               <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma ação pendente.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">Página {page + 1} de {totalPages}</p>
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}><ChevronLeft className="h-4 w-4" /></Button>
+            <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}><ChevronRight className="h-4 w-4" /></Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
