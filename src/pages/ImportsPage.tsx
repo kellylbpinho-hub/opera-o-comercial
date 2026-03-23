@@ -72,7 +72,7 @@ export default function ImportsPage() {
     mutationFn: async () => {
       if (!industryId) throw new Error("Selecione um assistente.");
 
-      const { data: allCities } = await supabase.from("cities").select("*");
+      const { data: allCities } = await supabase.from("cities").select("*").eq("is_active", true);
       const cityMap = new Map((allCities ?? []).map(c => [c.name.toLowerCase(), c]));
       const errs: ParsedRow[] = [];
       const valid: any[] = [];
