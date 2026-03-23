@@ -17,6 +17,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import OverdueFollowupsBanner from "@/components/OverdueFollowupsBanner";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -90,7 +91,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
       {/* Main */}
       <main className="flex-1 overflow-y-auto">
-        <div className="p-6 max-w-7xl mx-auto">
+        <div className="p-6 max-w-7xl mx-auto space-y-4">
+          <OverdueFollowupsBanner />
           {children}
         </div>
       </main>

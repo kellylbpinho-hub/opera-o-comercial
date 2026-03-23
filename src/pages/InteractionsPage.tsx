@@ -12,7 +12,7 @@ const PAGE_SIZE = 50;
 
 export default function InteractionsPage() {
   const { industryId } = useIndustry();
-  const [filter, setFilter] = useState<"overdue" | "week">("overdue");
+  const [filter, setFilter] = useState<"all" | "overdue" | "week">("all");
   const [page, setPage] = useState(0);
 
   const { data: result } = useQuery({
@@ -23,18 +23,18 @@ export default function InteractionsPage() {
 
       let q = supabase.from("interactions").select("*, contacts(company_name, city_name, category, industry_id)", { count: "exact" })
         .not("next_action_at", "is", null)
+        .is("reply_at", null)
         .order("next_action_at", { ascending: true })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
       if (filter === "overdue") {
         q = q.lte("next_action_at", now.toISOString());
-      } else {
+      } else if (filter === "week") {
         q = q.lte("next_action_at", weekLater.toISOString());
       }
 
       const { data, count } = await q;
 
-      // Filter by industry client-side if needed
       let filtered = data ?? [];
       if (industryId) {
         filtered = filtered.filter((i: any) => i.contacts?.industry_id === industryId);
@@ -54,6 +54,7 @@ export default function InteractionsPage() {
       <Select value={filter} onValueChange={v => { setFilter(v as any); setPage(0); }}>
         <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
         <SelectContent>
+          <SelectItem value="all">Todas pendentes</SelectItem>
           <SelectItem value="overdue">Vencidas</SelectItem>
           <SelectItem value="week">Próximos 7 dias</SelectItem>
         </SelectContent>
@@ -77,8 +78,8 @@ export default function InteractionsPage() {
               const contact = i.contacts as any;
               const isOverdue = i.next_action_at && new Date(i.next_action_at) < new Date();
               return (
-                <TableRow key={i.id}>
-                  <TableCell className="font-medium">{contact?.company_name || "—"}</TableCell>
+                <TableRow key={i.id} className={isOverdue ? "bg-destructive/5" : ""}>
+                  <TableCell className={`font-medium ${isOverdue ? "text-destructive" : ""}`}>{contact?.company_name || "—"}</TableCell>
                   <TableCell>{contact?.city_name || "—"}</TableCell>
                   <TableCell>{i.channel}</TableCell>
                   <TableCell>{i.stage || "—"}</TableCell>
