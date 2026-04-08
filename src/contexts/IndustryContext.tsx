@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 
 interface IndustrySelection {
   industryId: string | null;
@@ -14,6 +14,16 @@ interface IndustryContextType extends IndustrySelection {
   clearSelection: () => void;
 }
 
+const STORAGE_KEY = "esteira-industry-selection";
+
+const loadSelection = (): IndustrySelection => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return { industryId: null, industryKey: null, industryName: null, modeId: null, modeName: null };
+};
+
 const IndustryContext = createContext<IndustryContextType>({
   industryId: null,
   industryKey: null,
@@ -28,13 +38,11 @@ const IndustryContext = createContext<IndustryContextType>({
 export const useIndustry = () => useContext(IndustryContext);
 
 export function IndustryProvider({ children }: { children: ReactNode }) {
-  const [selection, setSelection] = useState<IndustrySelection>({
-    industryId: null,
-    industryKey: null,
-    industryName: null,
-    modeId: null,
-    modeName: null,
-  });
+  const [selection, setSelection] = useState<IndustrySelection>(loadSelection);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(selection));
+  }, [selection]);
 
   const setIndustry = (id: string, key: string, name: string) => {
     setSelection({ industryId: id, industryKey: key, industryName: name, modeId: null, modeName: null });
