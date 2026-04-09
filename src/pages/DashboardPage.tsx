@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, MessageSquare, Star, CalendarCheck, MapPin, TrendingUp, AlertTriangle } from "lucide-react";
+import { Package, MessageSquare, Star, CalendarCheck, MapPin, TrendingUp, AlertTriangle, Rocket } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Legend } from "recharts";
 
 const LANE_LABELS: Record<string, string> = {
@@ -21,7 +21,6 @@ export default function DashboardPage() {
   const { industryId, industryName } = useIndustry();
   const today = new Date().toISOString().split("T")[0];
   const [period, setPeriod] = useState<"7" | "14" | "30">("7");
-  const [filterCity, setFilterCity] = useState<string>("all");
 
   const daysAgo = (n: number) => {
     const d = new Date();
@@ -29,24 +28,6 @@ export default function DashboardPage() {
     return d.toISOString().split("T")[0];
   };
   const periodStart = daysAgo(Number(period));
-
-  // Cities for filter
-  const { data: cities } = useQuery({
-    queryKey: ["cities-dash"],
-    queryFn: async () => {
-      const { data } = await supabase.from("cities").select("id, name").eq("is_active", true).order("name");
-      return data ?? [];
-    },
-  });
-
-  // Industries for filter
-  const { data: industries } = useQuery({
-    queryKey: ["industries-dash"],
-    queryFn: async () => {
-      const { data } = await supabase.from("industries").select("id, name").eq("is_active", true);
-      return data ?? [];
-    },
-  });
 
   // --- KPI queries ---
   const { data: batchToday } = useQuery({
@@ -89,6 +70,16 @@ export default function DashboardPage() {
     queryFn: async () => {
       const { data } = await supabase.from("cities").select("id").eq("is_active", true);
       return data?.length ?? 0;
+    },
+  });
+
+  const { data: totalContacts } = useQuery({
+    queryKey: ["dashboard-total-contacts", industryId],
+    queryFn: async () => {
+      let q = supabase.from("contacts").select("id", { count: "exact", head: true }).is("deleted_at", null);
+      if (industryId) q = q.eq("industry_id", industryId);
+      const { count } = await q;
+      return count ?? 0;
     },
   });
 
@@ -216,6 +207,8 @@ export default function DashboardPage() {
     { label: "Cidades ativas", value: activeCities ?? 0, icon: MapPin, color: "text-blue-500" },
   ];
 
+  const hasNoData = (totalContacts ?? 0) === 0 && (batchToday ?? 0) === 0;
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -233,6 +226,27 @@ export default function DashboardPage() {
           </Select>
         </div>
       </div>
+
+      {/* Onboarding card when no data */}
+      {hasNoData && (
+        <Card className="shadow-sm border-primary/20 bg-primary/5">
+          <CardContent className="pt-6 flex flex-col items-center gap-4 text-center">
+            <Rocket className="h-12 w-12 text-primary" />
+            <div>
+              <p className="text-lg font-semibold">Bem-vindo à Esteira Comercial!</p>
+              <p className="text-sm text-muted-foreground mt-2 max-w-md">
+                Para começar, siga estes passos:
+              </p>
+              <ol className="text-sm text-muted-foreground mt-3 text-left max-w-md space-y-1">
+                <li>1. Selecione um <strong>assistente</strong> no menu lateral</li>
+                <li>2. Importe sua base de <strong>clientes ativos e inativos</strong> via CSV</li>
+                <li>3. Cadastre <strong>leads novos</strong> pelo Maps ou manualmente</li>
+                <li>4. Gere o <strong>Lote do Dia</strong> e comece a prospectar!</li>
+              </ol>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">

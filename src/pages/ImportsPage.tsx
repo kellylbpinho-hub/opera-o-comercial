@@ -72,17 +72,30 @@ export default function ImportsPage() {
     mutationFn: async () => {
       if (!industryId) throw new Error("Selecione um assistente.");
 
-      const { data: allCities } = await supabase.from("cities").select("*").eq("is_active", true);
-      const cityMap = new Map((allCities ?? []).map(c => [c.name.toLowerCase(), c]));
       const errs: ParsedRow[] = [];
       const valid: any[] = [];
 
       for (const row of rows) {
         if (!row.company_name) { errs.push({ ...row, error: "Empresa obrigatória" }); continue; }
-        const city = cityMap.get((row.city_name || "").toLowerCase());
-        if (!city) { errs.push({ ...row, error: `Cidade "${row.city_name}" não encontrada` }); continue; }
-        if (city.uf !== "PA") { errs.push({ ...row, error: "Fora do PA" }); continue; }
-        if (industryKey === "KAPAZI" && !city.is_kapazi_allowed) { errs.push({ ...row, error: "Cidade fora do território Kapazi" }); continue; }
+
+        // Server-side territory validation
+        const { data: tResult } = await supabase.functions.invoke("territory-guard", {
+          body: { industry_key: industryKey, city_name: row.city_name || "", uf: "PA" },
+        });
+        if (!tResult?.allowed) {
+          errs.push({ ...row, error: tResult?.reason || "Cidade não permitida" });
+          continue;
+        }
+
+        // Server-side deduplication check
+        const { data: dResult } = await supabase.functions.invoke("dedupe-contact", {
+          body: { company_name: row.company_name, phone: row.phone_raw, city_name: row.city_name, uf: "PA" },
+        });
+        if (dResult?.has_duplicates) {
+          const topMatch = dResult.duplicates[0];
+          errs.push({ ...row, error: `Duplicidade: "${topMatch.company_name}" (${Math.round(topMatch.confidence * 100)}%)` });
+          continue;
+        }
 
         const phoneNorm = (row.phone_raw || "").replace(/\D/g, "");
         valid.push({
@@ -96,8 +109,8 @@ export default function ImportsPage() {
           whatsapp_link: phoneNorm ? `https://wa.me/55${phoneNorm}` : null,
           instagram: row.instagram || null,
           address: row.address || null,
-          city_id: city.id,
-          city_name: city.name,
+          city_id: tResult.city_id,
+          city_name: tResult.city_name,
           uf: "PA",
           niche: row.niche || null,
           source: row.category === "ATIVO" ? "BASE_ATIVOS" as const : row.category === "INATIVO" ? "BASE_INATIVOS" as const : "MAPS" as const,
@@ -143,7 +156,7 @@ export default function ImportsPage() {
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">{rows.length} linhas encontradas</p>
             <Button onClick={() => importMutation.mutate()} disabled={importMutation.isPending}>
-              <FileText className="h-4 w-4 mr-2" />Importar
+              <FileText className="h-4 w-4 mr-2" />{importMutation.isPending ? "Importando..." : "Importar"}
             </Button>
           </div>
           <div className="rounded-lg border bg-card shadow-sm overflow-x-auto max-h-96 overflow-y-auto">
