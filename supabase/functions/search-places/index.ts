@@ -1,18 +1,7 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.3";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-interface PlaceResult {
-  name: string;
-  formatted_address?: string;
-  formatted_phone_number?: string;
-  website?: string;
-  geometry?: { location: { lat: number; lng: number } };
-  place_id: string;
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -33,73 +22,71 @@ Deno.serve(async (req) => {
       });
     }
 
-    let url: string;
+    // Use Places API (New) - Text Search
+    const textSearchUrl = "https://places.googleapis.com/v1/places:searchText";
+
+    let textQuery = query;
+    if (city) {
+      textQuery = `${query} em ${city}, Pará, Brasil`;
+    }
+
+    const requestBody: any = {
+      textQuery,
+      languageCode: "pt-BR",
+      maxResultCount: 20,
+    };
 
     if (lat && lng && radius_km) {
-      // Search by radius
       const radiusMeters = Math.min(radius_km * 1000, 50000);
-      url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&location=${lat},${lng}&radius=${radiusMeters}&key=${apiKey}&language=pt-BR`;
-    } else if (city) {
-      // Search by city
-      const searchQuery = `${query} em ${city}, Pará, Brasil`;
-      url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchQuery)}&key=${apiKey}&language=pt-BR`;
-    } else {
-      return new Response(JSON.stringify({ error: "Informe city ou lat/lng/radius_km" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      requestBody.locationBias = {
+        circle: {
+          center: { latitude: parseFloat(lat), longitude: parseFloat(lng) },
+          radius: radiusMeters,
+        },
+      };
+      requestBody.textQuery = query; // don't append city when using radius
     }
 
     if (page_token) {
-      url = `https://maps.googleapis.com/maps/api/place/textsearch/json?pagetoken=${page_token}&key=${apiKey}&language=pt-BR`;
+      requestBody.pageToken = page_token;
     }
 
-    const response = await fetch(url);
+    const fieldMask = "places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.location,places.businessStatus";
+
+    const response = await fetch(textSearchUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask": fieldMask,
+      },
+      body: JSON.stringify(requestBody),
+    });
+
     const data = await response.json();
 
-    if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
-      return new Response(JSON.stringify({ error: `Google API error: ${data.status}`, error_message: data.error_message }), {
+    if (data.error) {
+      return new Response(JSON.stringify({ error: data.error.message || "Google API error", status: data.error.status }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Extract relevant fields from results
-    const results = (data.results || []).map((place: any) => ({
-      place_id: place.place_id,
-      name: place.name,
-      address: place.formatted_address || "",
-      lat: place.geometry?.location?.lat,
-      lng: place.geometry?.location?.lng,
-      rating: place.rating,
-      user_ratings_total: place.user_ratings_total,
-      types: place.types,
-      business_status: place.business_status,
+    const results = (data.places || []).map((place: any) => ({
+      place_id: place.id,
+      name: place.displayName?.text || "",
+      address: place.formattedAddress || "",
+      phone: place.nationalPhoneNumber || null,
+      website: place.websiteUri || null,
+      rating: place.rating || null,
+      user_ratings_total: place.userRatingCount || null,
+      lat: place.location?.latitude,
+      lng: place.location?.longitude,
+      business_status: place.businessStatus || null,
     }));
 
-    // For each result, try to get phone number via Place Details (batch first 20)
-    const detailedResults = await Promise.all(
-      results.slice(0, 20).map(async (place: any) => {
-        try {
-          const detailUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=formatted_phone_number,website,opening_hours&key=${apiKey}&language=pt-BR`;
-          const detailRes = await fetch(detailUrl);
-          const detailData = await detailRes.json();
-          if (detailData.result) {
-            return {
-              ...place,
-              phone: detailData.result.formatted_phone_number || null,
-              website: detailData.result.website || null,
-              is_open: detailData.result.opening_hours?.open_now ?? null,
-            };
-          }
-        } catch {
-          // ignore detail errors
-        }
-        return place;
-      })
-    );
-
     return new Response(JSON.stringify({
-      results: detailedResults,
-      next_page_token: data.next_page_token || null,
+      results,
+      next_page_token: data.nextPageToken || null,
       total_found: results.length,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
