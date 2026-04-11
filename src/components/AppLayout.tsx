@@ -20,6 +20,7 @@ const navItems = [
   { to: "/lote", label: "Lote do Dia", icon: Package },
   { to: "/interacoes", label: "Interações", icon: CalendarCheck },
   { to: "/importacoes", label: "Importações", icon: FileText },
+  { to: "/prospeccao", label: "Prospecção Maps", icon: MapPin },
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {

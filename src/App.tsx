@@ -15,6 +15,7 @@ import TemplatesPage from "@/pages/TemplatesPage";
 import DailyBatchPage from "@/pages/DailyBatchPage";
 import InteractionsPage from "@/pages/InteractionsPage";
 import ImportsPage from "@/pages/ImportsPage";
+import SearchLeadsPage from "@/pages/SearchLeadsPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ function ProtectedRoutes() {
           <Route path="/lote" element={<DailyBatchPage />} />
           <Route path="/interacoes" element={<InteractionsPage />} />
           <Route path="/importacoes" element={<ImportsPage />} />
+          <Route path="/prospeccao" element={<SearchLeadsPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppLayout>
