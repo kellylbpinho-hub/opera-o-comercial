@@ -347,6 +347,32 @@ export default function DailyBatchPage() {
           );
         })}
       </div>
+
+      <Dialog open={!!whatsappDialog} onOpenChange={(open) => !open && setWhatsappDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enviar WhatsApp — {whatsappDialog?.contact?.company_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Para: {whatsappDialog?.contact?.phone_normalized || whatsappDialog?.contact?.phone_raw} · Estágio: {whatsappDialog?.stage}
+            </p>
+            <Textarea
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              rows={6}
+              placeholder="Mensagem..."
+            />
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setWhatsappDialog(null)}>Cancelar</Button>
+              <Button onClick={sendWhatsapp} disabled={sendingWhatsapp || !messageText.trim()}>
+                <Send className="h-4 w-4 mr-2" />
+                {sendingWhatsapp ? "Enviando..." : "Enviar WhatsApp"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
