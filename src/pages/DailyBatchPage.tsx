@@ -203,6 +203,56 @@ export default function DailyBatchPage() {
     },
   });
 
+  const openWhatsappDialog = async (contact: any, stage: string) => {
+    // Try to find a template for this stage/category
+    let templateText = "";
+    if (industryId) {
+      const { data: templates } = await supabase.from("templates")
+        .select("template_text")
+        .eq("industry_id", industryId)
+        .eq("stage", stage)
+        .eq("category", contact.category)
+        .eq("is_active", true)
+        .limit(1);
+      if (templates && templates.length > 0) {
+        templateText = templates[0].template_text
+          .replace("{{empresa}}", contact.company_name || "")
+          .replace("{{cidade}}", contact.city_name || "")
+          .replace("{{contato}}", contact.contact_name || "");
+      }
+    }
+    if (!templateText) {
+      templateText = `Olá! Vi sua empresa ${contact.company_name} em ${contact.city_name} e trabalho com linhas que podem agregar ao mix da sua loja. Posso te enviar uma apresentação rápida?`;
+    }
+    setMessageText(templateText);
+    setWhatsappDialog({ contact, stage });
+  };
+
+  const sendWhatsapp = async () => {
+    if (!whatsappDialog) return;
+    const { contact, stage } = whatsappDialog;
+    const phone = contact.phone_normalized || contact.phone_raw;
+    if (!phone) {
+      toast.error("Contato sem telefone cadastrado");
+      return;
+    }
+    setSendingWhatsapp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-whatsapp", {
+        body: { to: phone, message: messageText, contact_id: contact.id, stage },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("WhatsApp enviado com sucesso!");
+      setWhatsappDialog(null);
+      queryClient.invalidateQueries({ queryKey: ["batch-items"] });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao enviar WhatsApp");
+    } finally {
+      setSendingWhatsapp(false);
+    }
+  };
+
   const copyMessage = (contact: any) => {
     const msg = `Olá! Vi sua empresa em ${contact.city_name} e trabalho com linhas que podem agregar ao mix da sua loja. Se quiser, posso te enviar uma apresentação rápida pelo WhatsApp.`;
     navigator.clipboard.writeText(msg);
