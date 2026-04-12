@@ -314,8 +314,13 @@ export default function DailyBatchPage() {
                           {contact.whatsapp_link && (
                             <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
                               <a href={contact.whatsapp_link} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="h-3 w-3 mr-1" />WhatsApp
+                                <ExternalLink className="h-3 w-3 mr-1" />wa.me
                               </a>
+                            </Button>
+                          )}
+                          {(contact.phone_normalized || contact.phone_raw) && (
+                            <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => openWhatsappDialog(contact, "D0")}>
+                              <Send className="h-3 w-3 mr-1" />Enviar
                             </Button>
                           )}
                           {lane.key === "A_CONTATAR" && (
