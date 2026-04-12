@@ -411,7 +411,7 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
                         <a
                           href={c.instagram.startsWith("http") ? c.instagram : `https://instagram.com/${c.instagram.replace(/^@/, "")}`}
                           target="_blank" rel="noopener noreferrer" title="Instagram"
-                          className="text-pink-500 hover:text-pink-400"
+                          className="text-destructive hover:text-destructive/80"
                         >
                           <Instagram className="h-4 w-4" />
                         </a>
@@ -444,7 +444,7 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
                 </TableRow>
               ))}
               {!isLoading && contacts.length === 0 && (search || activeFilters > 0) && (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum contato encontrado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum contato encontrado.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
