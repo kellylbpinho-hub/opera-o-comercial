@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Plus, Search, ChevronLeft, ChevronRight, Users, Download, Trash2, Filter } from "lucide-react";
+import { Plus, Search, ChevronLeft, ChevronRight, Users, Download, Trash2, Filter, ExternalLink, Instagram, MessageCircle } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -377,13 +377,14 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
                 <TableHead className="hidden md:table-cell">Cidade</TableHead>
                 <TableHead className="hidden lg:table-cell">Nicho</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="hidden lg:table-cell">Links</TableHead>
                 <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 8 }).map((_, j) => (
+                  {Array.from({ length: 9 }).map((_, j) => (
                     <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                   ))}
                 </TableRow>
@@ -399,6 +400,24 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
                   <TableCell className="hidden md:table-cell">{c.city_name || "—"}</TableCell>
                   <TableCell className="hidden lg:table-cell">{c.niche || "—"}</TableCell>
                   <TableCell>{c.status}</TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    <div className="flex gap-1">
+                      {c.whatsapp_link && (
+                        <a href={c.whatsapp_link} target="_blank" rel="noopener noreferrer" title="WhatsApp" className="text-accent hover:text-accent/80">
+                          <MessageCircle className="h-4 w-4" />
+                        </a>
+                      )}
+                      {c.instagram && (
+                        <a
+                          href={c.instagram.startsWith("http") ? c.instagram : `https://instagram.com/${c.instagram.replace(/^@/, "")}`}
+                          target="_blank" rel="noopener noreferrer" title="Instagram"
+                          className="text-pink-500 hover:text-pink-400"
+                        >
+                          <Instagram className="h-4 w-4" />
+                        </a>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
