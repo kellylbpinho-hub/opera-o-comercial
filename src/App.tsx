@@ -16,6 +16,7 @@ import DailyBatchPage from "@/pages/DailyBatchPage";
 import InteractionsPage from "@/pages/InteractionsPage";
 import ImportsPage from "@/pages/ImportsPage";
 import SearchLeadsPage from "@/pages/SearchLeadsPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/*" element={<ProtectedRoutes />} />
           </Routes>
         </AuthProvider>
