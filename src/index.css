@@ -57,6 +57,58 @@
     --kanban-sem-interesse: 0 72% 51%;
   }
 
+  .dark {
+    --background: 220 20% 8%;
+    --foreground: 210 20% 92%;
+
+    --card: 220 18% 12%;
+    --card-foreground: 210 20% 92%;
+
+    --popover: 220 18% 12%;
+    --popover-foreground: 210 20% 92%;
+
+    --primary: 215 65% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 15% 18%;
+    --secondary-foreground: 210 20% 85%;
+
+    --muted: 220 15% 15%;
+    --muted-foreground: 215 15% 55%;
+
+    --accent: 160 50% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 20%;
+    --input: 220 15% 20%;
+    --ring: 215 65% 55%;
+
+    --sidebar-background: 220 22% 8%;
+    --sidebar-foreground: 210 20% 90%;
+    --sidebar-primary: 215 65% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 18% 14%;
+    --sidebar-accent-foreground: 210 20% 90%;
+    --sidebar-border: 220 15% 16%;
+    --sidebar-ring: 215 65% 55%;
+
+    --success: 160 50% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 215 65% 55%;
+    --info-foreground: 0 0% 100%;
+
+    --kanban-contatar: 215 65% 55%;
+    --kanban-contatado: 38 92% 50%;
+    --kanban-respondeu: 160 50% 42%;
+    --kanban-qualificado: 262 52% 47%;
+    --kanban-sem-interesse: 0 72% 51%;
+  }
+
   * {
     @apply border-border;
   }

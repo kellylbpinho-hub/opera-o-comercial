@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import OverdueFollowupsBanner from "@/components/OverdueFollowupsBanner";
 import GlobalSearch from "@/components/GlobalSearch";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -68,7 +69,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         })}
       </nav>
 
-      <div className="p-3 border-t border-sidebar-border">
+      <div className="p-3 border-t border-sidebar-border space-y-1">
+        <ThemeToggle />
         <Button
           variant="ghost"
           size="sm"

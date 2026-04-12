@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { downloadCSV } from "@/lib/csv-export";
 
 const PAGE_SIZE = 50;
 
@@ -47,9 +48,28 @@ export default function InteractionsPage() {
   const interactions = result?.interactions ?? [];
   const totalPages = Math.ceil((result?.total ?? 0) / PAGE_SIZE);
 
+  const handleExportCSV = () => {
+    if (interactions.length === 0) return;
+    const exportData = interactions.map((i: any) => ({
+      Empresa: i.contacts?.company_name || "",
+      Cidade: i.contacts?.city_name || "",
+      Canal: i.channel,
+      Estágio: i.stage || "",
+      Resultado: i.outcome || "",
+      "Próxima Ação": i.next_action_at ? new Date(i.next_action_at).toLocaleDateString("pt-BR") : "",
+      Tipo: i.next_action_type || "",
+    }));
+    downloadCSV(exportData, `interacoes_${new Date().toISOString().split("T")[0]}`);
+  };
+
   return (
     <div className="space-y-4 animate-fade-in">
-      <h1 className="text-2xl font-bold tracking-tight">Interações / Próximas Ações</h1>
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h1 className="text-2xl font-bold tracking-tight">Interações / Próximas Ações</h1>
+        <Button variant="outline" size="sm" onClick={handleExportCSV}>
+          <Download className="h-4 w-4 mr-1" />CSV
+        </Button>
+      </div>
 
       <Select value={filter} onValueChange={v => { setFilter(v as any); setPage(0); }}>
         <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
