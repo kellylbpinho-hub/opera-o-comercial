@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import OverdueFollowupsBanner from "@/components/OverdueFollowupsBanner";
+import GlobalSearch from "@/components/GlobalSearch";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -110,7 +111,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <Button variant="ghost" size="sm" onClick={() => setMobileOpen(true)} className="p-1">
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="font-semibold text-sm truncate">Esteira Comercial PA</span>
+          <span className="font-semibold text-sm truncate flex-1">Esteira Comercial PA</span>
+          <GlobalSearch />
+        </div>
+        {/* Desktop search bar */}
+        <div className="hidden md:flex items-center justify-end px-6 py-3 border-b bg-background sticky top-0 z-10">
+          <GlobalSearch />
         </div>
         <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-4">
           <OverdueFollowupsBanner />

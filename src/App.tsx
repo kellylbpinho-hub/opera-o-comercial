@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { IndustryProvider } from "@/contexts/IndustryContext";
 import AppLayout from "@/components/AppLayout";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
 import AssistantSelectorPage from "@/pages/AssistantSelectorPage";
@@ -49,19 +50,21 @@ function ProtectedRoutes() {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/*" element={<ProtectedRoutes />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/*" element={<ProtectedRoutes />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
