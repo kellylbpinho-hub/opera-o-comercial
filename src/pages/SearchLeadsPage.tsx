@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Search, MapPin, Download, Loader2, ExternalLink, Star } from "lucide-react";
+import { Search, MapPin, Download, Loader2, ExternalLink, Star, MessageCircle } from "lucide-react";
 
 interface PlaceResult {
   place_id: string;
@@ -234,6 +234,7 @@ export default function SearchLeadsPage() {
                     <TableHead className="hidden md:table-cell">Telefone</TableHead>
                     <TableHead className="hidden md:table-cell">Avaliação</TableHead>
                     <TableHead>Endereço</TableHead>
+                    <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -260,6 +261,19 @@ export default function SearchLeadsPage() {
                         ) : "—"}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">{r.address}</TableCell>
+                      <TableCell>
+                        {r.phone && (
+                          <a
+                            href={`https://wa.me/55${r.phone.replace(/\D/g, "")}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Abrir WhatsApp"
+                            className="text-accent hover:text-accent/80"
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </a>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
