@@ -7,11 +7,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Plus, Search, ChevronLeft, ChevronRight, Users } from "lucide-react";
+import { Plus, Search, ChevronLeft, ChevronRight, Users, Download, Trash2, Filter } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import ContactForm, { type ContactFormData } from "@/components/contacts/ContactForm";
-import ContactsTable from "@/components/contacts/ContactsTable";
 import DupeModal, { type DupeCandidate } from "@/components/contacts/DupeModal";
+import { downloadCSV } from "@/lib/csv-export";
 
 interface ContactsListPageProps {
   category: "ATIVO" | "INATIVO";
@@ -20,6 +28,15 @@ interface ContactsListPageProps {
 }
 
 const PAGE_SIZE = 50;
+
+const STATUS_OPTIONS = [
+  { value: "all", label: "Todos os status" },
+  { value: "NAO_CONTATADO", label: "Não Contatado" },
+  { value: "CONTATADO", label: "Contatado" },
+  { value: "RESPONDEU", label: "Respondeu" },
+  { value: "QUALIFICADO", label: "Qualificado" },
+  { value: "SEM_INTERESSE", label: "Sem Interesse" },
+];
 
 export default function ContactsListPage({ category, title, source }: ContactsListPageProps) {
   const { industryId, industryKey } = useIndustry();
@@ -31,6 +48,11 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
   const [dupes, setDupes] = useState<DupeCandidate[]>([]);
   const [showDupeModal, setShowDupeModal] = useState(false);
   const [pendingForm, setPendingForm] = useState<ContactFormData | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterCity, setFilterCity] = useState("all");
+  const [filterNiche, setFilterNiche] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const { data: cities } = useQuery({
     queryKey: ["cities"],
@@ -41,7 +63,7 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
   });
 
   const { data: contactsData, isLoading } = useQuery({
-    queryKey: ["contacts", category, industryId, search, page],
+    queryKey: ["contacts", category, industryId, search, page, filterCity, filterNiche, filterStatus],
     queryFn: async () => {
       let q = supabase.from("contacts").select("*", { count: "exact" })
         .eq("category", category)
@@ -50,13 +72,55 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (industryId) q = q.eq("industry_id", industryId);
       if (search) q = q.ilike("company_name", `%${search}%`);
+      if (filterCity !== "all") q = q.eq("city_name", filterCity);
+      if (filterNiche !== "all") q = q.eq("niche", filterNiche);
+      if (filterStatus !== "all") q = q.eq("status", filterStatus);
       const { data, count } = await q;
       return { contacts: data ?? [], total: count ?? 0 };
     },
   });
 
+  // Get unique niches & cities for filters
+  const { data: nicheOptions } = useQuery({
+    queryKey: ["contact-niches", category, industryId],
+    queryFn: async () => {
+      let q = supabase.from("contacts").select("niche").eq("category", category).is("deleted_at", null).not("niche", "is", null);
+      if (industryId) q = q.eq("industry_id", industryId);
+      const { data } = await q;
+      const niches = [...new Set((data ?? []).map(d => d.niche).filter(Boolean))] as string[];
+      return niches.sort();
+    },
+  });
+
+  const { data: cityOptions } = useQuery({
+    queryKey: ["contact-cities", category, industryId],
+    queryFn: async () => {
+      let q = supabase.from("contacts").select("city_name").eq("category", category).is("deleted_at", null).not("city_name", "is", null);
+      if (industryId) q = q.eq("industry_id", industryId);
+      const { data } = await q;
+      const cs = [...new Set((data ?? []).map(d => d.city_name).filter(Boolean))] as string[];
+      return cs.sort();
+    },
+  });
+
   const contacts = contactsData?.contacts ?? [];
   const totalPages = Math.ceil((contactsData?.total ?? 0) / PAGE_SIZE);
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selected.size === contacts.length) {
+      setSelected(new Set());
+    } else {
+      setSelected(new Set(contacts.map(c => c.id)));
+    }
+  };
 
   const doInsert = async (form: ContactFormData, force = false, justification = "") => {
     if (!industryId) throw new Error("Selecione um assistente primeiro.");
@@ -86,7 +150,7 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
           return "DUPE_FOUND";
         }
       } catch {
-        // If dedup fails, proceed (non-blocking)
+        // non-blocking
       }
     }
 
@@ -143,21 +207,60 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
     onError: (err: any) => toast.error(err.message),
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const now = new Date().toISOString();
+      for (const id of ids) {
+        const { error } = await supabase.from("contacts").update({ deleted_at: now }).eq("id", id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success(`${selected.size} contatos removidos.`);
+      setSelected(new Set());
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const handleExportCSV = () => {
+    if (contacts.length === 0) { toast.error("Nenhum contato para exportar."); return; }
+    const exportData = contacts.map(c => ({
+      Empresa: c.company_name,
+      Contato: c.contact_name || "",
+      Telefone: c.phone_raw || "",
+      Cidade: c.city_name || "",
+      Nicho: c.niche || "",
+      Status: c.status,
+      Instagram: c.instagram || "",
+      Endereço: c.address || "",
+    }));
+    downloadCSV(exportData, `${title.toLowerCase()}_${new Date().toISOString().split("T")[0]}`);
+    toast.success("CSV exportado!");
+  };
+
+  const activeFilters = [filterCity, filterNiche, filterStatus].filter(f => f !== "all").length;
+
   return (
     <div className="space-y-4 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Novo</Button></DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader><DialogTitle>Novo {title}</DialogTitle></DialogHeader>
-            <ContactForm
-              cities={cities ?? []}
-              isPending={createMutation.isPending}
-              onSubmit={(form) => createMutation.mutate(form)}
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+            <Download className="h-4 w-4 mr-1" />CSV
+          </Button>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Novo</Button></DialogTrigger>
+            <DialogContent className="max-w-lg">
+              <DialogHeader><DialogTitle>Novo {title}</DialogTitle></DialogHeader>
+              <ContactForm
+                cities={cities ?? []}
+                isPending={createMutation.isPending}
+                onSubmit={(form) => createMutation.mutate(form)}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <DupeModal
@@ -168,12 +271,82 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
         isPending={forceCreateMutation.isPending}
       />
 
-      <div className="relative">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input className="pl-9" placeholder="Buscar empresa..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} />
+      <div className="flex gap-2 items-center flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-9" placeholder="Buscar empresa..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} />
+        </div>
+        <Button
+          variant={activeFilters > 0 ? "default" : "outline"}
+          size="sm"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <Filter className="h-4 w-4 mr-1" />
+          Filtros{activeFilters > 0 ? ` (${activeFilters})` : ""}
+        </Button>
       </div>
 
-      {!isLoading && contacts.length === 0 && !search && (
+      {showFilters && (
+        <div className="flex gap-2 flex-wrap p-3 rounded-lg border bg-muted/30">
+          <Select value={filterCity} onValueChange={v => { setFilterCity(v); setPage(0); }}>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Cidade" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas cidades</SelectItem>
+              {cityOptions?.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterNiche} onValueChange={v => { setFilterNiche(v); setPage(0); }}>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Nicho" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos nichos</SelectItem>
+              {nicheOptions?.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filterStatus} onValueChange={v => { setFilterStatus(v); setPage(0); }}>
+            <SelectTrigger className="w-44"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              {STATUS_OPTIONS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {activeFilters > 0 && (
+            <Button variant="ghost" size="sm" onClick={() => { setFilterCity("all"); setFilterNiche("all"); setFilterStatus("all"); setPage(0); }}>
+              Limpar filtros
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Bulk action bar */}
+      {selected.size > 0 && (
+        <div className="flex items-center gap-3 p-2 rounded-lg border bg-primary/5">
+          <span className="text-sm font-medium">{selected.size} selecionado(s)</span>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash2 className="h-4 w-4 mr-1" />Remover selecionados
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Remover {selected.size} contatos?</AlertDialogTitle>
+                <AlertDialogDescription>Esta ação pode ser desfeita pelo administrador.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => bulkDeleteMutation.mutate([...selected])}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Remover
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Cancelar</Button>
+        </div>
+      )}
+
+      {!isLoading && contacts.length === 0 && !search && activeFilters === 0 && (
         <Card className="shadow-sm border-dashed">
           <CardContent className="pt-6 flex flex-col items-center gap-3 text-center">
             <Users className="h-10 w-10 text-muted-foreground" />
@@ -187,13 +360,76 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
         </Card>
       )}
 
-      {(contacts.length > 0 || search) && (
-        <ContactsTable
-          contacts={contacts}
-          isLoading={isLoading}
-          search={search}
-          onDelete={(id) => softDeleteMutation.mutate(id)}
-        />
+      {(contacts.length > 0 || search || activeFilters > 0) && (
+        <div className="rounded-lg border bg-card shadow-sm overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={contacts.length > 0 && selected.size === contacts.length}
+                    onCheckedChange={toggleAll}
+                  />
+                </TableHead>
+                <TableHead className="min-w-[140px]">Empresa</TableHead>
+                <TableHead className="hidden sm:table-cell">Contato</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead className="hidden md:table-cell">Cidade</TableHead>
+                <TableHead className="hidden lg:table-cell">Nicho</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-10"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading && Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  {Array.from({ length: 8 }).map((_, j) => (
+                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                  ))}
+                </TableRow>
+              ))}
+              {!isLoading && contacts.map(c => (
+                <TableRow key={c.id} className={selected.has(c.id) ? "bg-primary/5" : ""}>
+                  <TableCell>
+                    <Checkbox checked={selected.has(c.id)} onCheckedChange={() => toggleSelect(c.id)} />
+                  </TableCell>
+                  <TableCell className="font-medium">{c.company_name}</TableCell>
+                  <TableCell className="hidden sm:table-cell">{c.contact_name || "—"}</TableCell>
+                  <TableCell>{c.phone_raw || "—"}</TableCell>
+                  <TableCell className="hidden md:table-cell">{c.city_name || "—"}</TableCell>
+                  <TableCell className="hidden lg:table-cell">{c.niche || "—"}</TableCell>
+                  <TableCell>{c.status}</TableCell>
+                  <TableCell>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remover contato?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            O contato "{c.company_name}" será removido.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => softDeleteMutation.mutate(c.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Remover
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {!isLoading && contacts.length === 0 && (search || activeFilters > 0) && (
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum contato encontrado.</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       {totalPages > 1 && (
