@@ -7,8 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Copy, ExternalLink, CheckCircle } from "lucide-react";
+import { Plus, Copy, ExternalLink, CheckCircle, Send } from "lucide-react";
 
 const LANES = [
   { key: "A_CONTATAR", label: "A Contatar", color: "bg-kanban-contatar" },
@@ -23,6 +25,9 @@ export default function DailyBatchPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedCity, setSelectedCity] = useState("");
+  const [whatsappDialog, setWhatsappDialog] = useState<{ contact: any; stage: string } | null>(null);
+  const [messageText, setMessageText] = useState("");
+  const [sendingWhatsapp, setSendingWhatsapp] = useState(false);
 
   const { data: cities } = useQuery({
     queryKey: ["cities-batch", industryKey],
@@ -198,6 +203,56 @@ export default function DailyBatchPage() {
     },
   });
 
+  const openWhatsappDialog = async (contact: any, stage: string) => {
+    // Try to find a template for this stage/category
+    let templateText = "";
+    if (industryId) {
+      const { data: templates } = await supabase.from("templates")
+        .select("template_text")
+        .eq("industry_id", industryId)
+        .eq("stage", stage)
+        .eq("category", contact.category)
+        .eq("is_active", true)
+        .limit(1);
+      if (templates && templates.length > 0) {
+        templateText = templates[0].template_text
+          .replace("{{empresa}}", contact.company_name || "")
+          .replace("{{cidade}}", contact.city_name || "")
+          .replace("{{contato}}", contact.contact_name || "");
+      }
+    }
+    if (!templateText) {
+      templateText = `Olá! Vi sua empresa ${contact.company_name} em ${contact.city_name} e trabalho com linhas que podem agregar ao mix da sua loja. Posso te enviar uma apresentação rápida?`;
+    }
+    setMessageText(templateText);
+    setWhatsappDialog({ contact, stage });
+  };
+
+  const sendWhatsapp = async () => {
+    if (!whatsappDialog) return;
+    const { contact, stage } = whatsappDialog;
+    const phone = contact.phone_normalized || contact.phone_raw;
+    if (!phone) {
+      toast.error("Contato sem telefone cadastrado");
+      return;
+    }
+    setSendingWhatsapp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-whatsapp", {
+        body: { to: phone, message: messageText, contact_id: contact.id, stage },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast.success("WhatsApp enviado com sucesso!");
+      setWhatsappDialog(null);
+      queryClient.invalidateQueries({ queryKey: ["batch-items"] });
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao enviar WhatsApp");
+    } finally {
+      setSendingWhatsapp(false);
+    }
+  };
+
   const copyMessage = (contact: any) => {
     const msg = `Olá! Vi sua empresa em ${contact.city_name} e trabalho com linhas que podem agregar ao mix da sua loja. Se quiser, posso te enviar uma apresentação rápida pelo WhatsApp.`;
     navigator.clipboard.writeText(msg);
@@ -259,8 +314,13 @@ export default function DailyBatchPage() {
                           {contact.whatsapp_link && (
                             <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
                               <a href={contact.whatsapp_link} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="h-3 w-3 mr-1" />WhatsApp
+                                <ExternalLink className="h-3 w-3 mr-1" />wa.me
                               </a>
+                            </Button>
+                          )}
+                          {(contact.phone_normalized || contact.phone_raw) && (
+                            <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => openWhatsappDialog(contact, "D0")}>
+                              <Send className="h-3 w-3 mr-1" />Enviar
                             </Button>
                           )}
                           {lane.key === "A_CONTATAR" && (
@@ -287,6 +347,32 @@ export default function DailyBatchPage() {
           );
         })}
       </div>
+
+      <Dialog open={!!whatsappDialog} onOpenChange={(open) => !open && setWhatsappDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enviar WhatsApp — {whatsappDialog?.contact?.company_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Para: {whatsappDialog?.contact?.phone_normalized || whatsappDialog?.contact?.phone_raw} · Estágio: {whatsappDialog?.stage}
+            </p>
+            <Textarea
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              rows={6}
+              placeholder="Mensagem..."
+            />
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setWhatsappDialog(null)}>Cancelar</Button>
+              <Button onClick={sendWhatsapp} disabled={sendingWhatsapp || !messageText.trim()}>
+                <Send className="h-4 w-4 mr-2" />
+                {sendingWhatsapp ? "Enviando..." : "Enviar WhatsApp"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
