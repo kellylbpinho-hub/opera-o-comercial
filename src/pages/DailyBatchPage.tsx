@@ -25,6 +25,9 @@ export default function DailyBatchPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [selectedCity, setSelectedCity] = useState("");
+  const [whatsappDialog, setWhatsappDialog] = useState<{ contact: any; stage: string } | null>(null);
+  const [messageText, setMessageText] = useState("");
+  const [sendingWhatsapp, setSendingWhatsapp] = useState(false);
 
   const { data: cities } = useQuery({
     queryKey: ["cities-batch", industryKey],
