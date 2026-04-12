@@ -83,7 +83,24 @@ export default function DashboardPage() {
     },
   });
 
-  // --- Conversion rates ---
+  // --- Maps → WhatsApp pipeline ---
+  const { data: mapsPipeline } = useQuery({
+    queryKey: ["dashboard-maps-pipeline", industryId, periodStart],
+    queryFn: async () => {
+      let q = supabase.from("contacts").select("id, status, source")
+        .is("deleted_at", null)
+        .eq("source", "MAPS")
+        .gte("created_at", periodStart);
+      if (industryId) q = q.eq("industry_id", industryId);
+      const { data } = await q;
+      if (!data) return { total: 0, contatado: 0, respondeu: 0, qualificado: 0 };
+      const total = data.length;
+      const contatado = data.filter(c => c.status !== "NAO_CONTATADO").length;
+      const respondeu = data.filter(c => ["RESPONDEU", "QUALIFICADO"].includes(c.status)).length;
+      const qualificado = data.filter(c => c.status === "QUALIFICADO").length;
+      return { total, contatado, respondeu, qualificado };
+    },
+  });
   const { data: conversionData } = useQuery({
     queryKey: ["dashboard-conversion", industryId, periodStart],
     queryFn: async () => {
@@ -382,6 +399,33 @@ export default function DashboardPage() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Maps → WhatsApp pipeline */}
+      {mapsPipeline && mapsPipeline.total > 0 && (
+        <Card className="shadow-sm">
+          <CardHeader><CardTitle className="text-base flex items-center gap-2"><MapPin className="h-4 w-4" />Pipeline Maps → WhatsApp ({period} dias)</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold">{mapsPipeline.total}</p>
+                <p className="text-xs text-muted-foreground">Leads do Maps</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold">{pct(mapsPipeline.contatado, mapsPipeline.total)}</p>
+                <p className="text-xs text-muted-foreground">Contatados via WhatsApp</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold">{pct(mapsPipeline.respondeu, mapsPipeline.contatado)}</p>
+                <p className="text-xs text-muted-foreground">Taxa de Resposta</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold">{pct(mapsPipeline.qualificado, mapsPipeline.total)}</p>
+                <p className="text-xs text-muted-foreground">Maps → Qualificado</p>
+              </div>
             </div>
           </CardContent>
         </Card>
