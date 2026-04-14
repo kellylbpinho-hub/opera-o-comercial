@@ -116,13 +116,17 @@ export default function SearchLeadsPage() {
           source: "MAPS",
           owner_user_id: user?.id,
         });
-        if (error) { errors++; } else { imported++; }
+        if (error) { insertErrors++; } else { imported++; }
       }
 
-      return { imported, errors };
+      return { imported, territoryErrors, dupeErrors, insertErrors };
     },
     onSuccess: (data) => {
-      toast.success(`${data.imported} leads importados, ${data.errors} com erro/duplicidade.`);
+      const parts = [`${data.imported} importados`];
+      if (data.territoryErrors) parts.push(`${data.territoryErrors} fora do território`);
+      if (data.dupeErrors) parts.push(`${data.dupeErrors} duplicados`);
+      if (data.insertErrors) parts.push(`${data.insertErrors} erros`);
+      toast.success(parts.join(", "));
       setSelected(new Set());
     },
     onError: (err: any) => toast.error(err.message),
