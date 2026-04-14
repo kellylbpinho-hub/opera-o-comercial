@@ -5,25 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function similarity(a: string, b: string): number {
-  const al = a.toLowerCase().trim();
-  const bl = b.toLowerCase().trim();
-  if (al === bl) return 1.0;
-  if (!al || !bl) return 0;
-
-  // Simple bigram similarity
-  const bigrams = (s: string) => {
-    const set = new Set<string>();
-    for (let i = 0; i < s.length - 1; i++) set.add(s.substring(i, i + 2));
-    return set;
-  };
-  const aSet = bigrams(al);
-  const bSet = bigrams(bl);
-  let intersection = 0;
-  for (const bg of aSet) if (bSet.has(bg)) intersection++;
-  return (2 * intersection) / (aSet.size + bSet.size);
-}
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -33,40 +14,40 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { company_name, phone, city_name, uf } = await req.json();
+    const { company_name, phone, city_name } = await req.json();
     const candidates: any[] = [];
 
-    // 1. Exact phone match (highest confidence)
-    if (phone) {
-      const phoneNorm = phone.replace(/\D/g, "");
-      if (phoneNorm) {
-        const { data } = await supabase
-          .from("contacts")
-          .select("id, company_name, category, city_name, phone_raw, phone_normalized")
-          .eq("phone_normalized", phoneNorm)
-          .is("deleted_at", null)
-          .limit(5);
-        for (const row of data ?? []) {
-          candidates.push({ ...row, confidence: 0.95, match_type: "phone_exact" });
-        }
+    // 1. Exact phone match (only if phone is provided and non-empty)
+    const phoneNorm = (phone || "").replace(/\D/g, "");
+    if (phoneNorm.length >= 8) {
+      const { data } = await supabase
+        .from("contacts")
+        .select("id, company_name, category, city_name, phone_raw, phone_normalized")
+        .eq("phone_normalized", phoneNorm)
+        .is("deleted_at", null)
+        .limit(5);
+      for (const row of data ?? []) {
+        candidates.push({ ...row, confidence: 0.95, match_type: "phone_exact" });
       }
     }
 
-    // 2. Company name + city fuzzy match
+    // 2. Exact company name + city match (case-insensitive)
     if (company_name && city_name) {
       const compNorm = company_name.toLowerCase().trim();
+      const cityNorm = city_name.toLowerCase().trim().replace(/\s*-\s*[a-z]{2}\s*$/i, "");
+
       const { data } = await supabase
         .from("contacts")
         .select("id, company_name, company_name_normalized, category, city_name, phone_raw")
-        .eq("city_name", city_name)
         .is("deleted_at", null)
-        .limit(100);
+        .limit(200);
 
       for (const row of data ?? []) {
         if (candidates.some(c => c.id === row.id)) continue;
-        const sim = similarity(compNorm, row.company_name_normalized || row.company_name);
-        if (sim >= 0.6) {
-          candidates.push({ ...row, confidence: Math.round(sim * 100) / 100, match_type: sim === 1 ? "name_exact" : "name_fuzzy" });
+        const rowName = (row.company_name_normalized || row.company_name || "").toLowerCase().trim();
+        const rowCity = (row.city_name || "").toLowerCase().trim();
+        if (rowName === compNorm && rowCity === cityNorm) {
+          candidates.push({ ...row, confidence: 1.0, match_type: "name_city_exact" });
         }
       }
     }
