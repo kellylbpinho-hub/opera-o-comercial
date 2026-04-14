@@ -29,11 +29,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Normalize city name: remove state suffix like "- PA", trim
+    const cityNorm = city_name.replace(/\s*-\s*[A-Z]{2}\s*$/i, "").trim();
+
     // Find city
     const { data: cities } = await supabase
       .from("cities")
       .select("id, name, is_kapazi_allowed, is_active")
-      .ilike("name", city_name)
+      .ilike("name", cityNorm)
       .limit(1);
 
     if (!cities || cities.length === 0) {
