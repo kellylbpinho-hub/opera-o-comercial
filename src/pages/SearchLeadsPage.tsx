@@ -147,7 +147,7 @@ export default function SearchLeadsPage() {
         console.warn("Detalhes dos erros de importação:", errorDetails);
       }
 
-      return { imported, territoryErrors, dupeErrors, insertErrors };
+      return { imported, territoryErrors, dupeErrors, insertErrors, errorDetails };
     },
     onSuccess: (data) => {
       const parts = [`${data.imported} importados`];
