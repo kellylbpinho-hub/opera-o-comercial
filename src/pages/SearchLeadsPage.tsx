@@ -87,12 +87,20 @@ export default function SearchLeadsPage() {
       for (const place of toImport) {
         // Territory check
         const cityFromAddr = extractCity(place.address);
+        console.log(`[Import] "${place.name}" → cidade extraída: "${cityFromAddr}" (endereço: "${place.address}")`);
+        
+        if (!cityFromAddr) {
+          errorDetails.push(`"${place.name}": cidade não extraída do endereço "${place.address}"`);
+          territoryErrors++; continue;
+        }
+        
         const { data: tResult, error: tError } = await supabase.functions.invoke("territory-guard", {
           body: { industry_key: industryKey, city_name: cityFromAddr, uf: "PA" },
         });
+        console.log(`[Import] "${place.name}" → territory result:`, tResult, tError);
         if (tError || !tResult?.allowed) { 
           const reason = tResult?.reason || tError?.message || "Erro desconhecido";
-          errorDetails.push(`"${place.name}": território - ${reason}`);
+          errorDetails.push(`"${place.name}": território (cidade: "${cityFromAddr}") - ${reason}`);
           territoryErrors++; continue; 
         }
 
