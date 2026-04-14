@@ -316,12 +316,26 @@ export default function SearchLeadsPage() {
 }
 
 function extractCity(address: string): string {
-  // Tries to extract city from Google formatted address like "R. X, 123 - Bairro, Belém - PA, 66000-000"
+  // Google addresses in Brazil typically look like:
+  // "R. X, 123 - Bairro, Cidade - PA, 66000-000"
+  // or "R. X, 123 - Cidade - PA, 66000-000"
+  // Strategy: find the part before " - PA" (or other UF)
+  const ufMatch = address.match(/,?\s*([^,\-]+?)\s*-\s*[A-Z]{2}\s*[,]/i);
+  if (ufMatch) {
+    return ufMatch[1].trim();
+  }
+  // Fallback: try splitting by " - "
   const parts = address.split(" - ");
   if (parts.length >= 2) {
+    // The city is usually the part right before the state
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const stateMatch = parts[i].trim().match(/^[A-Z]{2}(\s|,|$)/);
+      if (stateMatch && i > 0) {
+        return parts[i - 1].split(",").pop()?.trim() || "";
+      }
+    }
     const cityPart = parts[parts.length - 2].trim();
-    // Remove state suffix if present
-    return cityPart.split(",")[0].trim();
+    return cityPart.split(",").pop()?.trim() || "";
   }
   return address.split(",").slice(-3, -2)[0]?.trim() || "";
 }
