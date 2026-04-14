@@ -82,22 +82,33 @@ export default function SearchLeadsPage() {
       let dupeErrors = 0;
       let insertErrors = 0;
 
+      const errorDetails: string[] = [];
+
       for (const place of toImport) {
         // Territory check
         const cityFromAddr = extractCity(place.address);
-        const { data: tResult } = await supabase.functions.invoke("territory-guard", {
+        const { data: tResult, error: tError } = await supabase.functions.invoke("territory-guard", {
           body: { industry_key: industryKey, city_name: cityFromAddr, uf: "PA" },
         });
-        if (!tResult?.allowed) { 
-          console.warn(`Território bloqueado para "${place.name}": ${tResult?.reason} (cidade extraída: "${cityFromAddr}")`);
+        if (tError || !tResult?.allowed) { 
+          const reason = tResult?.reason || tError?.message || "Erro desconhecido";
+          errorDetails.push(`"${place.name}": território - ${reason}`);
           territoryErrors++; continue; 
         }
 
         // Dedupe check
-        const { data: dResult } = await supabase.functions.invoke("dedupe-contact", {
-          body: { company_name: place.name, phone: place.phone, city_name: cityFromAddr, uf: "PA" },
+        const { data: dResult, error: dError } = await supabase.functions.invoke("dedupe-contact", {
+          body: { company_name: place.name, phone: place.phone, city_name: cityFromAddr },
         });
-        if (dResult?.has_duplicates) { dupeErrors++; continue; }
+        if (dError) {
+          errorDetails.push(`"${place.name}": erro dedup - ${dError.message}`);
+          insertErrors++; continue;
+        }
+        if (dResult?.has_duplicates) { 
+          const dupeNames = dResult.duplicates?.map((d: any) => d.company_name).join(", ") || "";
+          errorDetails.push(`"${place.name}": duplicado de ${dupeNames}`);
+          dupeErrors++; continue; 
+        }
 
         const phoneNorm = (place.phone || "").replace(/\D/g, "");
         const { error } = await supabase.from("contacts").insert({
@@ -116,7 +127,16 @@ export default function SearchLeadsPage() {
           source: "MAPS",
           owner_user_id: user?.id,
         });
-        if (error) { insertErrors++; } else { imported++; }
+        if (error) { 
+          errorDetails.push(`"${place.name}": inserção - ${error.message}`);
+          insertErrors++; 
+        } else { 
+          imported++; 
+        }
+      }
+
+      if (errorDetails.length > 0) {
+        console.warn("Detalhes dos erros de importação:", errorDetails);
       }
 
       return { imported, territoryErrors, dupeErrors, insertErrors };
