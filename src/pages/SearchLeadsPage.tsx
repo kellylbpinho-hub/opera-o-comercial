@@ -87,12 +87,20 @@ export default function SearchLeadsPage() {
       for (const place of toImport) {
         // Territory check
         const cityFromAddr = extractCity(place.address);
+        console.log(`[Import] "${place.name}" → cidade extraída: "${cityFromAddr}" (endereço: "${place.address}")`);
+        
+        if (!cityFromAddr) {
+          errorDetails.push(`"${place.name}": cidade não extraída do endereço "${place.address}"`);
+          territoryErrors++; continue;
+        }
+        
         const { data: tResult, error: tError } = await supabase.functions.invoke("territory-guard", {
           body: { industry_key: industryKey, city_name: cityFromAddr, uf: "PA" },
         });
+        console.log(`[Import] "${place.name}" → territory result:`, tResult, tError);
         if (tError || !tResult?.allowed) { 
           const reason = tResult?.reason || tError?.message || "Erro desconhecido";
-          errorDetails.push(`"${place.name}": território - ${reason}`);
+          errorDetails.push(`"${place.name}": território (cidade: "${cityFromAddr}") - ${reason}`);
           territoryErrors++; continue; 
         }
 
@@ -139,14 +147,27 @@ export default function SearchLeadsPage() {
         console.warn("Detalhes dos erros de importação:", errorDetails);
       }
 
-      return { imported, territoryErrors, dupeErrors, insertErrors };
+      return { imported, territoryErrors, dupeErrors, insertErrors, errorDetails };
     },
     onSuccess: (data) => {
       const parts = [`${data.imported} importados`];
       if (data.territoryErrors) parts.push(`${data.territoryErrors} fora do território`);
       if (data.dupeErrors) parts.push(`${data.dupeErrors} duplicados`);
       if (data.insertErrors) parts.push(`${data.insertErrors} erros`);
-      toast.success(parts.join(", "));
+      
+      if (data.imported > 0) {
+        toast.success(parts.join(", "));
+      } else {
+        toast.error("Nenhum lead importado. " + parts.join(", "));
+      }
+      
+      // Show detailed errors
+      if (data.errorDetails && data.errorDetails.length > 0) {
+        data.errorDetails.forEach((detail: string) => {
+          toast.error(detail, { duration: 8000 });
+        });
+      }
+      
       setSelected(new Set());
     },
     onError: (err: any) => toast.error(err.message),
@@ -316,12 +337,26 @@ export default function SearchLeadsPage() {
 }
 
 function extractCity(address: string): string {
-  // Tries to extract city from Google formatted address like "R. X, 123 - Bairro, Belém - PA, 66000-000"
+  // Google addresses in Brazil typically look like:
+  // "R. X, 123 - Bairro, Cidade - PA, 66000-000"
+  // or "R. X, 123 - Cidade - PA, 66000-000"
+  // Strategy: find the part before " - PA" (or other UF)
+  const ufMatch = address.match(/,?\s*([^,\-]+?)\s*-\s*[A-Z]{2}\s*[,]/i);
+  if (ufMatch) {
+    return ufMatch[1].trim();
+  }
+  // Fallback: try splitting by " - "
   const parts = address.split(" - ");
   if (parts.length >= 2) {
+    // The city is usually the part right before the state
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const stateMatch = parts[i].trim().match(/^[A-Z]{2}(\s|,|$)/);
+      if (stateMatch && i > 0) {
+        return parts[i - 1].split(",").pop()?.trim() || "";
+      }
+    }
     const cityPart = parts[parts.length - 2].trim();
-    // Remove state suffix if present
-    return cityPart.split(",")[0].trim();
+    return cityPart.split(",").pop()?.trim() || "";
   }
   return address.split(",").slice(-3, -2)[0]?.trim() || "";
 }
