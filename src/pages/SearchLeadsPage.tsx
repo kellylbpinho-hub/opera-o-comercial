@@ -154,7 +154,20 @@ export default function SearchLeadsPage() {
       if (data.territoryErrors) parts.push(`${data.territoryErrors} fora do território`);
       if (data.dupeErrors) parts.push(`${data.dupeErrors} duplicados`);
       if (data.insertErrors) parts.push(`${data.insertErrors} erros`);
-      toast.success(parts.join(", "));
+      
+      if (data.imported > 0) {
+        toast.success(parts.join(", "));
+      } else {
+        toast.error("Nenhum lead importado. " + parts.join(", "));
+      }
+      
+      // Show detailed errors
+      if (data.errorDetails && data.errorDetails.length > 0) {
+        data.errorDetails.forEach((detail: string) => {
+          toast.error(detail, { duration: 8000 });
+        });
+      }
+      
       setSelected(new Set());
     },
     onError: (err: any) => toast.error(err.message),
