@@ -78,7 +78,9 @@ export default function SearchLeadsPage() {
       if (toImport.length === 0) throw new Error("Selecione ao menos um lead.");
 
       let imported = 0;
-      let errors = 0;
+      let territoryErrors = 0;
+      let dupeErrors = 0;
+      let insertErrors = 0;
 
       for (const place of toImport) {
         // Territory check
@@ -86,13 +88,16 @@ export default function SearchLeadsPage() {
         const { data: tResult } = await supabase.functions.invoke("territory-guard", {
           body: { industry_key: industryKey, city_name: cityFromAddr, uf: "PA" },
         });
-        if (!tResult?.allowed) { errors++; continue; }
+        if (!tResult?.allowed) { 
+          console.warn(`Território bloqueado para "${place.name}": ${tResult?.reason} (cidade extraída: "${cityFromAddr}")`);
+          territoryErrors++; continue; 
+        }
 
         // Dedupe check
         const { data: dResult } = await supabase.functions.invoke("dedupe-contact", {
           body: { company_name: place.name, phone: place.phone, city_name: cityFromAddr, uf: "PA" },
         });
-        if (dResult?.has_duplicates) { errors++; continue; }
+        if (dResult?.has_duplicates) { dupeErrors++; continue; }
 
         const phoneNorm = (place.phone || "").replace(/\D/g, "");
         const { error } = await supabase.from("contacts").insert({
