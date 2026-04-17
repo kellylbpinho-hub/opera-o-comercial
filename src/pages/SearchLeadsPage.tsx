@@ -90,10 +90,23 @@ export default function SearchLeadsPage() {
       return data;
     },
     onSuccess: (data, pageToken) => {
-      if (pageToken) setResults(prev => [...prev, ...data.results]);
-      else { setResults(data.results); setSelected(new Set()); setImportResults([]); setCityOverrides({}); }
+      if (pageToken) {
+        setResults(prev => [...prev, ...data.results]);
+        // Auto-select newly loaded results too
+        setSelected(prev => {
+          const next = new Set(prev);
+          data.results.forEach((r: PlaceResult) => next.add(r.place_id));
+          return next;
+        });
+      } else {
+        setResults(data.results);
+        // Auto-select ALL results so user only needs to click "Import"
+        setSelected(new Set(data.results.map((r: PlaceResult) => r.place_id)));
+        setImportResults([]);
+        setCityOverrides({});
+      }
       setNextPageToken(data.next_page_token);
-      toast.success(`${data.results.length} resultados encontrados`);
+      toast.success(`${data.results.length} resultados encontrados — todos selecionados. Clique em "Importar" para salvar.`);
     },
     onError: (err: any) => toast.error(err.message),
   });
