@@ -90,10 +90,23 @@ export default function SearchLeadsPage() {
       return data;
     },
     onSuccess: (data, pageToken) => {
-      if (pageToken) setResults(prev => [...prev, ...data.results]);
-      else { setResults(data.results); setSelected(new Set()); setImportResults([]); setCityOverrides({}); }
+      if (pageToken) {
+        setResults(prev => [...prev, ...data.results]);
+        // Auto-select newly loaded results too
+        setSelected(prev => {
+          const next = new Set(prev);
+          data.results.forEach((r: PlaceResult) => next.add(r.place_id));
+          return next;
+        });
+      } else {
+        setResults(data.results);
+        // Auto-select ALL results so user only needs to click "Import"
+        setSelected(new Set(data.results.map((r: PlaceResult) => r.place_id)));
+        setImportResults([]);
+        setCityOverrides({});
+      }
       setNextPageToken(data.next_page_token);
-      toast.success(`${data.results.length} resultados encontrados`);
+      toast.success(`${data.results.length} resultados encontrados — todos selecionados. Clique em "Importar" para salvar.`);
     },
     onError: (err: any) => toast.error(err.message),
   });
@@ -217,9 +230,9 @@ export default function SearchLeadsPage() {
                     Carregar mais
                   </Button>
                 )}
-                <Button size="sm" onClick={() => importMutation.mutate()} disabled={importMutation.isPending || selected.size === 0}>
+                <Button size="lg" onClick={() => importMutation.mutate()} disabled={importMutation.isPending || selected.size === 0} className="font-semibold">
                   {importMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-                  Importar {selected.size > 0 ? `(${selected.size})` : ""}
+                  Importar {selected.size > 0 ? `(${selected.size})` : ""} para Novos Leads
                 </Button>
               </div>
             </div>
@@ -227,6 +240,16 @@ export default function SearchLeadsPage() {
               <div className="space-y-1">
                 <Progress value={50} className="h-2" />
                 <p className="text-xs text-muted-foreground">Validando território, deduplicando e inserindo...</p>
+              </div>
+            )}
+            {!importMutation.isPending && importResults.length === 0 && (
+              <div className="rounded-md bg-primary/10 border border-primary/20 p-3 text-sm">
+                <p className="font-medium text-primary">📋 Como salvar estes leads:</p>
+                <ol className="text-xs text-muted-foreground mt-1 ml-4 list-decimal space-y-0.5">
+                  <li>Confirme/corrija a <strong>Cidade</strong> (deve estar no território)</li>
+                  <li>Desmarque os que não quiser (todos já vêm selecionados)</li>
+                  <li>Clique em <strong>"Importar para Novos Leads"</strong></li>
+                </ol>
               </div>
             )}
           </CardHeader>
