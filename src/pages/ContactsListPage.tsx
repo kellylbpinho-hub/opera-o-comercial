@@ -20,7 +20,7 @@ import {
 import ContactForm, { type ContactFormData } from "@/components/contacts/ContactForm";
 import DupeModal, { type DupeCandidate } from "@/components/contacts/DupeModal";
 import { downloadCSV } from "@/lib/csv-export";
-import { buildWhatsappLink, getWhatsappMessage, PROFILE_LABELS, getClientProfile } from "@/lib/whatsapp-messages";
+import { buildWhatsappLink, getWhatsappMessage, PROFILE_LABELS, getClientProfile, INDUSTRY_CATALOG, formatTag } from "@/lib/whatsapp-messages";
 
 interface ContactsListPageProps {
   category: "ATIVO" | "INATIVO";
@@ -53,6 +53,7 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
   const [filterCity, setFilterCity] = useState("all");
   const [filterNiche, setFilterNiche] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterTag, setFilterTag] = useState("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const { data: cities } = useQuery({
@@ -64,7 +65,7 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
   });
 
   const { data: contactsData, isLoading } = useQuery({
-    queryKey: ["contacts", category, industryId, search, page, filterCity, filterNiche, filterStatus],
+    queryKey: ["contacts", category, industryId, search, page, filterCity, filterNiche, filterStatus, filterTag],
     queryFn: async () => {
       let q = supabase.from("contacts").select("*", { count: "exact" })
         .eq("category", category)
@@ -76,6 +77,7 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
       if (filterCity !== "all") q = q.eq("city_name", filterCity);
       if (filterNiche !== "all") q = q.eq("niche", filterNiche);
       if (filterStatus !== "all") q = q.eq("status", filterStatus);
+      if (filterTag !== "all") q = q.contains("industry_tags", [filterTag]);
       const { data, count } = await q;
       return { contacts: data ?? [], total: count ?? 0 };
     },
@@ -165,6 +167,7 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
       city_id: form.city_id, city_name: city.name, uf: "PA", niche: form.niche || null,
       source, notes: force ? `[Forçado] ${justification}\n${form.notes || ""}` : (form.notes || null),
       owner_user_id: user?.id,
+      industry_tags: form.industry_tags ?? [],
     });
     if (error) throw error;
     return "OK";
@@ -240,7 +243,7 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
     toast.success("CSV exportado!");
   };
 
-  const activeFilters = [filterCity, filterNiche, filterStatus].filter(f => f !== "all").length;
+  const activeFilters = [filterCity, filterNiche, filterStatus, filterTag].filter(f => f !== "all").length;
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -309,8 +312,22 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
               {STATUS_OPTIONS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Select value={filterTag} onValueChange={v => { setFilterTag(v); setPage(0); }}>
+            <SelectTrigger className="w-56"><SelectValue placeholder="Indústria/Nicho" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas indústrias</SelectItem>
+              {INDUSTRY_CATALOG.map(ind => (
+                <div key={ind.brand}>
+                  {ind.niches.map(n => {
+                    const tag = `${ind.brand}:${n}`;
+                    return <SelectItem key={tag} value={tag}>{ind.brandLabel} · {n}</SelectItem>;
+                  })}
+                </div>
+              ))}
+            </SelectContent>
+          </Select>
           {activeFilters > 0 && (
-            <Button variant="ghost" size="sm" onClick={() => { setFilterCity("all"); setFilterNiche("all"); setFilterStatus("all"); setPage(0); }}>
+            <Button variant="ghost" size="sm" onClick={() => { setFilterCity("all"); setFilterNiche("all"); setFilterStatus("all"); setFilterTag("all"); setPage(0); }}>
               Limpar filtros
             </Button>
           )}
