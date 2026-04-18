@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus, Copy, ExternalLink, CheckCircle, Send } from "lucide-react";
+import { getWhatsappMessage } from "@/lib/whatsapp-messages";
 
 const LANES = [
   { key: "A_CONTATAR", label: "A Contatar", color: "bg-kanban-contatar" },
