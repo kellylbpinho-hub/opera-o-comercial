@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Upload, FileText, AlertTriangle, CheckCircle } from "lucide-react";
+import { Upload, FileText, AlertTriangle, CheckCircle, Loader2, ShieldAlert } from "lucide-react";
 
 interface ParsedRow {
   company_name: string;
@@ -19,8 +20,14 @@ interface ParsedRow {
   city_name?: string;
   niche?: string;
   category?: string;
+  // Pré-análise
+  is_duplicate?: boolean;
+  duplicate_of?: string;
+  include?: boolean; // se true, importa mesmo sendo duplicata
   error?: string;
 }
+
+const VALID_CATEGORIES = ["ATIVO", "INATIVO", "NOVO_MAPS", "NOVO_MANUAL"];
 
 export default function ImportsPage() {
   const { industryId, industryKey } = useIndustry();
@@ -30,55 +37,102 @@ export default function ImportsPage() {
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [imported, setImported] = useState(false);
   const [errors, setErrors] = useState<ParsedRow[]>([]);
+  const [analyzing, setAnalyzing] = useState(false);
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const text = evt.target?.result as string;
-      const lines = text.split("\n").filter(l => l.trim());
-      if (lines.length < 2) { toast.error("Arquivo vazio ou sem dados."); return; }
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) { toast.error("Arquivo vazio ou sem dados."); return; }
 
-      const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
-      const parsed: ParsedRow[] = [];
+    const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+    const parsed: ParsedRow[] = [];
 
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(",").map(c => c.trim());
-        const row: any = {};
-        headers.forEach((h, idx) => { row[h] = cols[idx] || ""; });
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(",").map(c => c.trim());
+      const row: any = {};
+      headers.forEach((h, idx) => { row[h] = cols[idx] || ""; });
 
-        parsed.push({
-          company_name: row.company_name || row.empresa || "",
-          contact_name: row.contact_name || row.contato || "",
-          phone_raw: row.phone_raw || row.telefone || "",
-          instagram: row.instagram || "",
-          address: row.address || row.endereco || "",
-          city_name: row.city_name || row.cidade || "",
-          niche: row.niche || row.nicho || "",
-          category: row.category || row.categoria || "NOVO_MAPS",
+      const cat = (row.category || row.categoria || "NOVO_MAPS").toUpperCase();
+      parsed.push({
+        company_name: row.company_name || row.empresa || "",
+        contact_name: row.contact_name || row.contato || "",
+        phone_raw: row.phone_raw || row.telefone || "",
+        instagram: row.instagram || "",
+        address: row.address || row.endereco || "",
+        city_name: row.city_name || row.cidade || "",
+        niche: row.niche || row.nicho || "",
+        category: VALID_CATEGORIES.includes(cat) ? cat : "NOVO_MAPS",
+        include: true,
+      });
+    }
+
+    setRows(parsed);
+    setImported(false);
+    setErrors([]);
+
+    // Pré-checar duplicatas
+    if (industryId) {
+      setAnalyzing(true);
+      try {
+        const phones = parsed.map(r => (r.phone_raw || "").replace(/\D/g, "")).filter(p => p.length >= 8);
+        const names = parsed.map(r => r.company_name.toLowerCase().trim()).filter(Boolean);
+
+        const { data: existing } = await supabase
+          .from("contacts")
+          .select("id, company_name, company_name_normalized, city_name, phone_normalized")
+          .eq("industry_id", industryId)
+          .is("deleted_at", null)
+          .or(
+            [
+              phones.length > 0 ? `phone_normalized.in.(${phones.join(",")})` : null,
+              names.length > 0 ? `company_name_normalized.in.(${names.map(n => `"${n.replace(/"/g, "")}"`).join(",")})` : null,
+            ].filter(Boolean).join(",")
+          );
+
+        const phoneMap = new Map<string, string>();
+        const nameMap = new Map<string, string>();
+        for (const c of existing ?? []) {
+          if (c.phone_normalized) phoneMap.set(c.phone_normalized, c.company_name);
+          const nameKey = `${(c.company_name_normalized || c.company_name || "").toLowerCase().trim()}|${(c.city_name || "").toLowerCase().trim()}`;
+          nameMap.set(nameKey, c.company_name);
+        }
+
+        const enriched = parsed.map(r => {
+          const phoneNorm = (r.phone_raw || "").replace(/\D/g, "");
+          const nameKey = `${r.company_name.toLowerCase().trim()}|${(r.city_name || "").toLowerCase().trim()}`;
+          let dupOf: string | undefined;
+          if (phoneNorm.length >= 8 && phoneMap.has(phoneNorm)) dupOf = phoneMap.get(phoneNorm);
+          else if (nameMap.has(nameKey)) dupOf = nameMap.get(nameKey);
+          return { ...r, is_duplicate: !!dupOf, duplicate_of: dupOf, include: !dupOf };
         });
+        setRows(enriched);
+      } finally {
+        setAnalyzing(false);
       }
-
-      setRows(parsed);
-      setImported(false);
-      setErrors([]);
-    };
-    reader.readAsText(file);
+    }
   };
+
+  const toggleInclude = (idx: number) => {
+    setRows(rs => rs.map((r, i) => i === idx ? { ...r, include: !r.include } : r));
+  };
+
+  const dupCount = rows.filter(r => r.is_duplicate).length;
+  const toImportCount = rows.filter(r => r.include).length;
 
   const importMutation = useMutation({
     mutationFn: async () => {
-      if (!industryId) throw new Error("Selecione um assistente.");
+      if (!industryId) throw new Error("Selecione uma marca primeiro.");
 
       const errs: ParsedRow[] = [];
       const valid: any[] = [];
 
       for (const row of rows) {
+        if (!row.include) continue;
         if (!row.company_name) { errs.push({ ...row, error: "Empresa obrigatória" }); continue; }
 
-        // Server-side territory validation
         const { data: tResult } = await supabase.functions.invoke("territory-guard", {
           body: { industry_key: industryKey, city_name: row.city_name || "", uf: "PA" },
         });
@@ -87,20 +141,11 @@ export default function ImportsPage() {
           continue;
         }
 
-        // Server-side deduplication check
-        const { data: dResult } = await supabase.functions.invoke("dedupe-contact", {
-          body: { company_name: row.company_name, phone: row.phone_raw, city_name: row.city_name, uf: "PA" },
-        });
-        if (dResult?.has_duplicates) {
-          const topMatch = dResult.duplicates[0];
-          errs.push({ ...row, error: `Duplicidade: "${topMatch.company_name}" (${Math.round(topMatch.confidence * 100)}%)` });
-          continue;
-        }
-
         const phoneNorm = (row.phone_raw || "").replace(/\D/g, "");
+        const cat = row.category || "NOVO_MAPS";
         valid.push({
           industry_id: industryId,
-          category: row.category || "NOVO_MAPS",
+          category: cat,
           company_name: row.company_name,
           company_name_normalized: row.company_name.toLowerCase().trim(),
           contact_name: row.contact_name || null,
@@ -113,8 +158,9 @@ export default function ImportsPage() {
           city_name: tResult.city_name,
           uf: "PA",
           niche: row.niche || null,
-          source: row.category === "ATIVO" ? "BASE_ATIVOS" as const : row.category === "INATIVO" ? "BASE_INATIVOS" as const : "MAPS" as const,
+          source: cat === "ATIVO" ? "BASE_ATIVOS" : cat === "INATIVO" ? "BASE_INATIVOS" : "MAPS",
           owner_user_id: user?.id,
+          notes: row.is_duplicate ? "[Importado mesmo sendo duplicata]" : null,
         });
       }
 
@@ -142,7 +188,11 @@ export default function ImportsPage() {
         <CardHeader><CardTitle className="text-base">Upload CSV</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Colunas: empresa, contato, telefone, instagram, endereco, cidade, nicho, categoria
+            Colunas aceitas: <code>empresa, contato, telefone, instagram, endereco, cidade, nicho, categoria</code>
+          </p>
+          <p className="text-xs text-muted-foreground">
+            A coluna <strong>categoria</strong> aceita: <code>ATIVO</code>, <code>INATIVO</code>, <code>NOVO_MAPS</code>, <code>NOVO_MANUAL</code>.
+            Não confunda com a marca (Kapazi, Forte Plástico, Imprimax) — a marca vem do seletor de Marca no topo.
           </p>
           <input ref={fileRef} type="file" accept=".csv" onChange={handleFile} className="hidden" />
           <Button variant="outline" onClick={() => fileRef.current?.click()}>
@@ -151,35 +201,80 @@ export default function ImportsPage() {
         </CardContent>
       </Card>
 
-      {rows.length > 0 && !imported && (
+      {analyzing && (
+        <Card className="shadow-sm">
+          <CardContent className="pt-6 flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Verificando duplicatas com sua carteira...
+          </CardContent>
+        </Card>
+      )}
+
+      {rows.length > 0 && !imported && !analyzing && (
         <>
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">{rows.length} linhas encontradas</p>
-            <Button onClick={() => importMutation.mutate()} disabled={importMutation.isPending}>
-              <FileText className="h-4 w-4 mr-2" />{importMutation.isPending ? "Importando..." : "Importar"}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex gap-2 flex-wrap items-center">
+              <span className="text-sm text-muted-foreground">{rows.length} linhas</span>
+              {dupCount > 0 && (
+                <Badge variant="outline" className="border-amber-500 text-amber-700 dark:text-amber-400">
+                  <ShieldAlert className="h-3 w-3 mr-1" />
+                  {dupCount} já na carteira
+                </Badge>
+              )}
+              <Badge variant="secondary">{toImportCount} a importar</Badge>
+            </div>
+            <Button onClick={() => importMutation.mutate()} disabled={importMutation.isPending || toImportCount === 0}>
+              <FileText className="h-4 w-4 mr-2" />
+              {importMutation.isPending ? "Importando..." : `Importar ${toImportCount}`}
             </Button>
           </div>
+
+          {dupCount > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Linhas duplicadas estão desmarcadas por padrão. Marque o checkbox se quiser importar mesmo assim.
+            </p>
+          )}
+
           <div className="rounded-lg border bg-card shadow-sm overflow-x-auto max-h-96 overflow-y-auto">
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">Importar</TableHead>
                   <TableHead>Empresa</TableHead>
                   <TableHead>Telefone</TableHead>
-                  <TableHead>Cidade</TableHead>
+                  <TableHead className="hidden sm:table-cell">Cidade</TableHead>
                   <TableHead>Categoria</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.slice(0, 50).map((r, i) => (
-                  <TableRow key={i}>
-                    <TableCell>{r.company_name}</TableCell>
-                    <TableCell>{r.phone_raw}</TableCell>
-                    <TableCell>{r.city_name}</TableCell>
-                    <TableCell>{r.category}</TableCell>
+                {rows.slice(0, 200).map((r, i) => (
+                  <TableRow key={i} className={r.is_duplicate ? "bg-amber-500/5" : ""}>
+                    <TableCell>
+                      <Checkbox checked={!!r.include} onCheckedChange={() => toggleInclude(i)} />
+                    </TableCell>
+                    <TableCell className="font-medium">{r.company_name}</TableCell>
+                    <TableCell>{r.phone_raw || "—"}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{r.city_name || "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs">{r.category}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {r.is_duplicate ? (
+                        <Badge variant="outline" className="border-amber-500 text-amber-700 dark:text-amber-400 text-xs">
+                          ⚠️ Já na carteira
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs">Novo</Badge>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+            {rows.length > 200 && (
+              <p className="text-xs text-muted-foreground p-2 text-center">Mostrando 200 de {rows.length} linhas. Todas serão processadas.</p>
+            )}
           </div>
         </>
       )}

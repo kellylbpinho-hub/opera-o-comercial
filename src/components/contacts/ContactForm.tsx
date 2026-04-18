@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,10 +27,18 @@ interface ContactFormProps {
   cities: Array<{ id: string; name: string }>;
   isPending: boolean;
   onSubmit: (form: ContactFormData) => void;
+  /** Quando preenchido, o formulário entra em modo edição */
+  initialData?: Partial<ContactFormData>;
+  submitLabel?: string;
 }
 
-export default function ContactForm({ cities, isPending, onSubmit }: ContactFormProps) {
-  const [form, setForm] = useState<ContactFormData>(EMPTY_FORM);
+export default function ContactForm({ cities, isPending, onSubmit, initialData, submitLabel = "Salvar" }: ContactFormProps) {
+  const [form, setForm] = useState<ContactFormData>({ ...EMPTY_FORM, ...initialData });
+
+  // Reidratar quando initialData mudar (ex.: trocar de contato editado)
+  useEffect(() => {
+    if (initialData) setForm(f => ({ ...EMPTY_FORM, ...initialData }));
+  }, [initialData]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +67,7 @@ export default function ContactForm({ cities, isPending, onSubmit }: ContactForm
       />
 
       <div><Label>Observação</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
-      <Button type="submit" className="w-full" disabled={isPending}>Salvar</Button>
+      <Button type="submit" className="w-full" disabled={isPending}>{submitLabel}</Button>
     </form>
   );
 }

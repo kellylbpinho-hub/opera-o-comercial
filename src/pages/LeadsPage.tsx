@@ -4,37 +4,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIndustry } from "@/contexts/IndustryContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Search, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
-
-interface DupeCandidate {
-  id: string;
-  company_name: string;
-  category: string;
-  city_name: string;
-  phone_raw?: string;
-  confidence: number;
-  match_type: string;
-  suggested_action: string;
-}
+import { Plus, Search, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
+import ContactForm, { type ContactFormData } from "@/components/contacts/ContactForm";
+import DupeModal, { type DupeCandidate } from "@/components/contacts/DupeModal";
+import { formatTag } from "@/lib/whatsapp-messages";
 
 const PAGE_SIZE = 50;
 
-function LeadForm({ source, category, onSuccess }: { source: "MAPS" | "MANUAL"; category: "NOVO_MAPS" | "NOVO_MANUAL"; onSuccess: () => void }) {
+export default function LeadsPage() {
   const { industryId, industryKey } = useIndustry();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState("maps");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [page, setPage] = useState(0);
+  const [editing, setEditing] = useState<any | null>(null);
   const [dupes, setDupes] = useState<DupeCandidate[]>([]);
   const [showDupeModal, setShowDupeModal] = useState(false);
-  const [justification, setJustification] = useState("");
+  const [pendingForm, setPendingForm] = useState<ContactFormData | null>(null);
+
+  const category = tab === "maps" ? "NOVO_MAPS" : "NOVO_MANUAL";
+  const source = tab === "maps" ? "MAPS" : "MANUAL";
 
   const { data: cities } = useQuery({
     queryKey: ["cities-for-leads", industryKey],
@@ -45,148 +42,6 @@ function LeadForm({ source, category, onSuccess }: { source: "MAPS" | "MANUAL"; 
       return data ?? [];
     },
   });
-
-  const [form, setForm] = useState({
-    company_name: "", phone_raw: "", instagram: "", address: "", city_id: "", niche: "", notes: "",
-  });
-
-  const queryClient = useQueryClient();
-
-  const doInsert = async (force = false) => {
-    if (!industryId) throw new Error("Selecione um assistente primeiro.");
-    const city = cities?.find(c => c.id === form.city_id);
-    if (!city) throw new Error("Selecione uma cidade.");
-
-    // Server-side territory validation
-    const { data: tResult } = await supabase.functions.invoke("territory-guard", {
-      body: { industry_key: industryKey, city_name: city.name, uf: "PA" },
-    });
-    if (tResult && !tResult.allowed) throw new Error(tResult.reason);
-
-    // Server-side deduplication
-    if (!force) {
-      const { data: dResult } = await supabase.functions.invoke("dedupe-contact", {
-        body: { company_name: form.company_name, phone: form.phone_raw, city_name: city.name, uf: "PA" },
-      });
-      if (dResult?.has_duplicates) {
-        setDupes(dResult.duplicates);
-        setShowDupeModal(true);
-        return "DUPE_FOUND";
-      }
-    }
-
-    const phoneNorm = form.phone_raw.replace(/\D/g, "");
-    const compNorm = form.company_name.toLowerCase().trim();
-
-    const { error } = await supabase.from("contacts").insert({
-      industry_id: industryId, category, company_name: form.company_name,
-      company_name_normalized: compNorm, phone_raw: form.phone_raw || null,
-      phone_normalized: phoneNorm || null, whatsapp_link: phoneNorm ? `https://wa.me/55${phoneNorm}` : null,
-      instagram: form.instagram || null, address: form.address || null,
-      city_id: form.city_id, city_name: city.name, uf: "PA",
-      niche: form.niche || null, source, notes: force ? `[Forçado] ${justification}\n${form.notes || ""}` : (form.notes || null),
-      owner_user_id: user?.id,
-    });
-    if (error) throw error;
-    return "OK";
-  };
-
-  const createMutation = useMutation({
-    mutationFn: () => doInsert(false),
-    onSuccess: (result) => {
-      if (result === "DUPE_FOUND") return;
-      toast.success("Lead criado!");
-      queryClient.invalidateQueries({ queryKey: ["leads"] });
-      setForm({ company_name: "", phone_raw: "", instagram: "", address: "", city_id: "", niche: "", notes: "" });
-      onSuccess();
-    },
-    onError: (err: any) => toast.error(err.message),
-  });
-
-  const forceCreateMutation = useMutation({
-    mutationFn: () => doInsert(true),
-    onSuccess: () => {
-      toast.success("Lead criado (forçado)!");
-      queryClient.invalidateQueries({ queryKey: ["leads"] });
-      setForm({ company_name: "", phone_raw: "", instagram: "", address: "", city_id: "", niche: "", notes: "" });
-      setShowDupeModal(false);
-      setJustification("");
-      onSuccess();
-    },
-    onError: (err: any) => toast.error(err.message),
-  });
-
-  return (
-    <>
-      <form onSubmit={e => { e.preventDefault(); createMutation.mutate(); }} className="space-y-3">
-        <div><Label>Empresa *</Label><Input value={form.company_name} onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))} required /></div>
-        <div><Label>Telefone</Label><Input value={form.phone_raw} onChange={e => setForm(f => ({ ...f, phone_raw: e.target.value }))} placeholder="(91) 99999-9999" /></div>
-        <div><Label>Instagram</Label><Input value={form.instagram} onChange={e => setForm(f => ({ ...f, instagram: e.target.value }))} /></div>
-        <div>
-          <Label>Cidade *</Label>
-          <Select value={form.city_id} onValueChange={v => setForm(f => ({ ...f, city_id: v }))}>
-            <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-            <SelectContent>{cities?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
-          </Select>
-        </div>
-        <div><Label>Endereço</Label><Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} /></div>
-        <div><Label>Nicho</Label><Input value={form.niche} onChange={e => setForm(f => ({ ...f, niche: e.target.value }))} /></div>
-        <div><Label>Observação</Label><Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
-        <Button type="submit" className="w-full" disabled={createMutation.isPending}>Salvar Lead</Button>
-      </form>
-
-      {/* Duplicate modal */}
-      <Dialog open={showDupeModal} onOpenChange={setShowDupeModal}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />Possível duplicidade
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 max-h-64 overflow-y-auto">
-            {dupes.map(d => (
-              <Card key={d.id} className="shadow-sm">
-                <CardContent className="p-3 text-sm space-y-1">
-                  <p className="font-medium">{d.company_name}</p>
-                  <div className="flex gap-2 flex-wrap">
-                    <Badge variant="secondary">{d.category}</Badge>
-                    <Badge variant="outline">{d.city_name}</Badge>
-                    <Badge variant={d.confidence >= 0.9 ? "destructive" : "secondary"}>
-                      {Math.round(d.confidence * 100)}% confiança
-                    </Badge>
-                  </div>
-                  {d.phone_raw && <p className="text-xs text-muted-foreground">{d.phone_raw}</p>}
-                  <p className="text-xs text-muted-foreground">
-                    Ação sugerida: {d.suggested_action === "REATIVACAO" ? "Reativação" : d.suggested_action === "BLOQUEAR" ? "Bloquear" : "Revisar"}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <div className="space-y-2">
-            <Label>Justificativa para manter como novo:</Label>
-            <Textarea value={justification} onChange={e => setJustification(e.target.value)} placeholder="Explique por que este não é duplicado..." />
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={() => setShowDupeModal(false)}>Bloquear</Button>
-            <Button variant="default" className="flex-1" disabled={!justification || forceCreateMutation.isPending} onClick={() => forceCreateMutation.mutate()}>
-              Manter como novo
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
-
-export default function LeadsPage() {
-  const { industryId } = useIndustry();
-  const [search, setSearch] = useState("");
-  const [tab, setTab] = useState("maps");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [page, setPage] = useState(0);
-
-  const category = tab === "maps" ? "NOVO_MAPS" : "NOVO_MANUAL";
 
   const { data: leadsData } = useQuery({
     queryKey: ["leads", category, industryId, search, page],
@@ -206,6 +61,115 @@ export default function LeadsPage() {
   const leads = leadsData?.leads ?? [];
   const totalPages = Math.ceil((leadsData?.total ?? 0) / PAGE_SIZE);
 
+  const doInsert = async (form: ContactFormData, force = false, justification = "") => {
+    if (!industryId) throw new Error("Selecione uma marca primeiro.");
+    const city = cities?.find(c => c.id === form.city_id);
+    if (!city) throw new Error("Selecione uma cidade.");
+
+    const { data: tResult } = await supabase.functions.invoke("territory-guard", {
+      body: { industry_key: industryKey, city_name: city.name, uf: "PA" },
+    });
+    if (tResult && !tResult.allowed) throw new Error(tResult.reason);
+
+    if (!force) {
+      const { data: dResult } = await supabase.functions.invoke("dedupe-contact", {
+        body: { company_name: form.company_name, phone: form.phone_raw, city_name: city.name, uf: "PA" },
+      });
+      if (dResult?.has_duplicates) {
+        setDupes(dResult.duplicates);
+        setPendingForm(form);
+        setShowDupeModal(true);
+        return "DUPE_FOUND";
+      }
+    }
+
+    const phoneNorm = form.phone_raw.replace(/\D/g, "");
+    const { error } = await supabase.from("contacts").insert({
+      industry_id: industryId, category, company_name: form.company_name,
+      company_name_normalized: form.company_name.toLowerCase().trim(),
+      contact_name: form.contact_name || null,
+      phone_raw: form.phone_raw || null,
+      phone_normalized: phoneNorm || null,
+      whatsapp_link: phoneNorm ? `https://wa.me/55${phoneNorm}` : null,
+      instagram: form.instagram || null, address: form.address || null,
+      city_id: form.city_id, city_name: city.name, uf: "PA",
+      niche: form.niche || null, source,
+      notes: force ? `[Forçado] ${justification}\n${form.notes || ""}` : (form.notes || null),
+      owner_user_id: user?.id,
+      industry_tags: form.industry_tags ?? [],
+    });
+    if (error) throw error;
+    return "OK";
+  };
+
+  const createMutation = useMutation({
+    mutationFn: (form: ContactFormData) => doInsert(form),
+    onSuccess: (result) => {
+      if (result === "DUPE_FOUND") return;
+      toast.success("Lead criado!");
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      setDialogOpen(false);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const forceCreateMutation = useMutation({
+    mutationFn: (j: string) => {
+      if (!pendingForm) throw new Error("Formulário não encontrado.");
+      return doInsert(pendingForm, true, j);
+    },
+    onSuccess: () => {
+      toast.success("Lead criado (forçado)!");
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      setShowDupeModal(false);
+      setDialogOpen(false);
+      setPendingForm(null);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (form: ContactFormData) => {
+      if (!editing) throw new Error("Nada para editar.");
+      const phoneNorm = form.phone_raw.replace(/\D/g, "");
+      const city = cities?.find(c => c.id === form.city_id);
+      const { error } = await supabase.from("contacts").update({
+        company_name: form.company_name,
+        company_name_normalized: form.company_name.toLowerCase().trim(),
+        contact_name: form.contact_name || null,
+        phone_raw: form.phone_raw || null,
+        phone_normalized: phoneNorm || null,
+        whatsapp_link: phoneNorm ? `https://wa.me/55${phoneNorm}` : null,
+        instagram: form.instagram || null,
+        address: form.address || null,
+        city_id: form.city_id || editing.city_id,
+        city_name: city?.name ?? editing.city_name,
+        niche: form.niche || null,
+        notes: form.notes || null,
+        industry_tags: form.industry_tags ?? [],
+      }).eq("id", editing.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Lead atualizado!");
+      queryClient.invalidateQueries({ queryKey: ["leads"] });
+      setEditing(null);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const editingInitial: Partial<ContactFormData> | undefined = editing ? {
+    company_name: editing.company_name ?? "",
+    contact_name: editing.contact_name ?? "",
+    phone_raw: editing.phone_raw ?? "",
+    instagram: editing.instagram ?? "",
+    address: editing.address ?? "",
+    city_id: editing.city_id ?? "",
+    niche: editing.niche ?? "",
+    notes: editing.notes ?? "",
+    industry_tags: editing.industry_tags ?? [],
+  } : undefined;
+
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -214,10 +178,38 @@ export default function LeadsPage() {
           <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Novo Lead</Button></DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader><DialogTitle>Novo Lead ({tab === "maps" ? "Maps" : "Manual"})</DialogTitle></DialogHeader>
-            <LeadForm source={tab === "maps" ? "MAPS" : "MANUAL"} category={category as "NOVO_MAPS" | "NOVO_MANUAL"} onSuccess={() => setDialogOpen(false)} />
+            <ContactForm
+              cities={cities ?? []}
+              isPending={createMutation.isPending}
+              onSubmit={(form) => createMutation.mutate(form)}
+            />
           </DialogContent>
         </Dialog>
       </div>
+
+      <DupeModal
+        open={showDupeModal}
+        onOpenChange={setShowDupeModal}
+        dupes={dupes}
+        onForceCreate={(j) => forceCreateMutation.mutate(j)}
+        isPending={forceCreateMutation.isPending}
+      />
+
+      {/* Edit dialog */}
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Editar lead</DialogTitle></DialogHeader>
+          {editing && (
+            <ContactForm
+              cities={cities ?? []}
+              isPending={updateMutation.isPending}
+              initialData={editingInitial}
+              submitLabel="Salvar alterações"
+              onSubmit={(form) => updateMutation.mutate(form)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Tabs value={tab} onValueChange={v => { setTab(v); setPage(0); }}>
         <TabsList>
@@ -237,23 +229,43 @@ export default function LeadsPage() {
             <TableRow>
               <TableHead>Empresa</TableHead>
               <TableHead>Telefone</TableHead>
-              <TableHead>Cidade</TableHead>
-              <TableHead>Nicho</TableHead>
+              <TableHead className="hidden md:table-cell">Cidade</TableHead>
+              <TableHead className="hidden md:table-cell">Nicho</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {leads.map(l => (
               <TableRow key={l.id}>
-                <TableCell className="font-medium">{l.company_name}</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex flex-col gap-1">
+                    <span>{l.company_name}</span>
+                    {Array.isArray(l.industry_tags) && l.industry_tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {l.industry_tags.slice(0, 3).map((t: string) => (
+                          <Badge key={t} variant="secondary" className="text-[10px] py-0 px-1.5">{formatTag(t)}</Badge>
+                        ))}
+                        {l.industry_tags.length > 3 && (
+                          <Badge variant="outline" className="text-[10px] py-0 px-1.5">+{l.industry_tags.length - 3}</Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>{l.phone_raw || "—"}</TableCell>
-                <TableCell>{l.city_name || "—"}</TableCell>
-                <TableCell>{l.niche || "—"}</TableCell>
+                <TableCell className="hidden md:table-cell">{l.city_name || "—"}</TableCell>
+                <TableCell className="hidden md:table-cell">{l.niche || "—"}</TableCell>
                 <TableCell>{l.status}</TableCell>
+                <TableCell>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setEditing(l)} title="Editar">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
             {leads.length === 0 && (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum lead encontrado.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum lead encontrado.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
