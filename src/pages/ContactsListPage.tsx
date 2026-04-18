@@ -20,6 +20,7 @@ import {
 import ContactForm, { type ContactFormData } from "@/components/contacts/ContactForm";
 import DupeModal, { type DupeCandidate } from "@/components/contacts/DupeModal";
 import { downloadCSV } from "@/lib/csv-export";
+import { buildWhatsappLink, getWhatsappMessage, PROFILE_LABELS, getClientProfile } from "@/lib/whatsapp-messages";
 
 interface ContactsListPageProps {
   category: "ATIVO" | "INATIVO";
@@ -402,8 +403,14 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
                   <TableCell>{c.status}</TableCell>
                   <TableCell className="hidden lg:table-cell">
                     <div className="flex gap-1">
-                      {c.whatsapp_link && (
-                        <a href={c.whatsapp_link} target="_blank" rel="noopener noreferrer" title="WhatsApp" className="text-accent hover:text-accent/80">
+                      {(c.phone_normalized || c.phone_raw) && (
+                        <a
+                          href={buildWhatsappLink(c.phone_normalized || c.phone_raw, getWhatsappMessage(c)) || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`WhatsApp · ${PROFILE_LABELS[getClientProfile(c)]}`}
+                          className="text-accent hover:text-accent/80"
+                        >
                           <MessageCircle className="h-4 w-4" />
                         </a>
                       )}

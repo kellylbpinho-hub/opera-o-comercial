@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus, Copy, ExternalLink, CheckCircle, Send } from "lucide-react";
+import { getWhatsappMessage, getClientProfile, PROFILE_LABELS } from "@/lib/whatsapp-messages";
 
 const LANES = [
   { key: "A_CONTATAR", label: "A Contatar", color: "bg-kanban-contatar" },
@@ -204,8 +205,10 @@ export default function DailyBatchPage() {
   });
 
   const openWhatsappDialog = async (contact: any, stage: string) => {
-    // Try to find a template for this stage/category
-    let templateText = "";
+    // Mensagem padrão por perfil do cliente (Prospecção / Reativação / Relacionamento)
+    let templateText = getWhatsappMessage(contact);
+
+    // Se houver um template específico cadastrado para o estágio/categoria, ele tem prioridade
     if (industryId) {
       const { data: templates } = await supabase.from("templates")
         .select("template_text")
@@ -220,9 +223,6 @@ export default function DailyBatchPage() {
           .replace("{{cidade}}", contact.city_name || "")
           .replace("{{contato}}", contact.contact_name || "");
       }
-    }
-    if (!templateText) {
-      templateText = `Olá! Vi sua empresa ${contact.company_name} em ${contact.city_name} e trabalho com linhas que podem agregar ao mix da sua loja. Posso te enviar uma apresentação rápida?`;
     }
     setMessageText(templateText);
     setWhatsappDialog({ contact, stage });
@@ -254,8 +254,7 @@ export default function DailyBatchPage() {
   };
 
   const copyMessage = (contact: any) => {
-    const msg = `Olá! Vi sua empresa em ${contact.city_name} e trabalho com linhas que podem agregar ao mix da sua loja. Se quiser, posso te enviar uma apresentação rápida pelo WhatsApp.`;
-    navigator.clipboard.writeText(msg);
+    navigator.clipboard.writeText(getWhatsappMessage(contact));
     toast.success("Mensagem copiada!");
   };
 
@@ -357,6 +356,11 @@ export default function DailyBatchPage() {
             <p className="text-sm text-muted-foreground">
               Para: {whatsappDialog?.contact?.phone_normalized || whatsappDialog?.contact?.phone_raw} · Estágio: {whatsappDialog?.stage}
             </p>
+            {whatsappDialog?.contact && (
+              <Badge variant="secondary" className="text-xs">
+                Perfil: {PROFILE_LABELS[getClientProfile(whatsappDialog.contact)]}
+              </Badge>
+            )}
             <Textarea
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}

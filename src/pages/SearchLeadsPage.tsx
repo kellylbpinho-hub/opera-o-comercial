@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Search, MapPin, Download, Loader2, ExternalLink, Star, MessageCircle, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { buildWhatsappLink, WHATSAPP_MESSAGES } from "@/lib/whatsapp-messages";
 
 interface PlaceResult {
   place_id: string;
@@ -294,7 +295,13 @@ export default function SearchLeadsPage() {
                           {r.phone ? (
                             <div className="flex items-center gap-2">
                               <span>{r.phone}</span>
-                              <a href={`https://wa.me/55${r.phone.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="text-accent">
+                              <a
+                                href={buildWhatsappLink(r.phone, WHATSAPP_MESSAGES.PROSPECT) || "#"}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-accent"
+                                title="Abrir WhatsApp com mensagem de prospecção"
+                              >
                                 <MessageCircle className="h-4 w-4" />
                               </a>
                             </div>
