@@ -35,7 +35,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <>
       <div className="p-4 border-b border-sidebar-border">
         <h1 className="font-bold text-base tracking-tight text-sidebar-primary-foreground">
-          Esteira Comercial PA
+          Zé Vendas
         </h1>
         {industryName && (
           <button
