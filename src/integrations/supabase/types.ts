@@ -71,6 +71,7 @@ export type Database = {
           id: string
           industry_id: string
           industry_mode_id: string | null
+          industry_tags: string[] | null
           instagram: string | null
           last_order_date: string | null
           neighborhood: string | null
@@ -101,6 +102,7 @@ export type Database = {
           id?: string
           industry_id: string
           industry_mode_id?: string | null
+          industry_tags?: string[] | null
           instagram?: string | null
           last_order_date?: string | null
           neighborhood?: string | null
@@ -131,6 +133,7 @@ export type Database = {
           id?: string
           industry_id?: string
           industry_mode_id?: string | null
+          industry_tags?: string[] | null
           instagram?: string | null
           last_order_date?: string | null
           neighborhood?: string | null
