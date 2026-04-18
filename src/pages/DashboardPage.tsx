@@ -250,7 +250,7 @@ export default function DashboardPage() {
           <CardContent className="pt-6 flex flex-col items-center gap-4 text-center">
             <Rocket className="h-12 w-12 text-primary" />
             <div>
-              <p className="text-lg font-semibold">Bem-vindo à Esteira Comercial!</p>
+              <p className="text-lg font-semibold">Bem-vindo ao Zé Vendas!</p>
               <p className="text-sm text-muted-foreground mt-2 max-w-md">
                 Para começar, siga estes passos:
               </p>

@@ -35,7 +35,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <>
       <div className="p-4 border-b border-sidebar-border">
         <h1 className="font-bold text-base tracking-tight text-sidebar-primary-foreground">
-          Esteira Comercial PA
+          Zé Vendas
         </h1>
         {industryName && (
           <button
@@ -113,7 +113,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <Button variant="ghost" size="sm" onClick={() => setMobileOpen(true)} className="p-1">
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="font-semibold text-sm truncate flex-1">Esteira Comercial PA</span>
+          <span className="font-semibold text-sm truncate flex-1">Zé Vendas</span>
           <GlobalSearch />
         </div>
         {/* Desktop search bar */}
