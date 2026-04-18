@@ -469,7 +469,21 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
                   <TableCell>
                     <Checkbox checked={selected.has(c.id)} onCheckedChange={() => toggleSelect(c.id)} />
                   </TableCell>
-                  <TableCell className="font-medium">{c.company_name}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex flex-col gap-1">
+                      <span>{c.company_name}</span>
+                      {Array.isArray(c.industry_tags) && c.industry_tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {c.industry_tags.slice(0, 3).map((t: string) => (
+                            <Badge key={t} variant="secondary" className="text-[10px] py-0 px-1.5">{formatTag(t)}</Badge>
+                          ))}
+                          {c.industry_tags.length > 3 && (
+                            <Badge variant="outline" className="text-[10px] py-0 px-1.5">+{c.industry_tags.length - 3}</Badge>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell className="hidden sm:table-cell">{c.contact_name || "—"}</TableCell>
                   <TableCell>{c.phone_raw || "—"}</TableCell>
                   <TableCell className="hidden md:table-cell">{c.city_name || "—"}</TableCell>
@@ -500,27 +514,32 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
                     </div>
                   </TableCell>
                   <TableCell>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Remover contato?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            O contato "{c.company_name}" será removido.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => softDeleteMutation.mutate(c.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            Remover
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setEditing(c)} title="Editar">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remover contato?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              O contato "{c.company_name}" será removido.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => softDeleteMutation.mutate(c.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                              Remover
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
