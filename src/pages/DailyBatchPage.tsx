@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Plus, Copy, ExternalLink, CheckCircle, Send } from "lucide-react";
-import { getWhatsappMessage } from "@/lib/whatsapp-messages";
+import { getWhatsappMessage, getClientProfile, PROFILE_LABELS } from "@/lib/whatsapp-messages";
 
 const LANES = [
   { key: "A_CONTATAR", label: "A Contatar", color: "bg-kanban-contatar" },
@@ -356,6 +356,11 @@ export default function DailyBatchPage() {
             <p className="text-sm text-muted-foreground">
               Para: {whatsappDialog?.contact?.phone_normalized || whatsappDialog?.contact?.phone_raw} · Estágio: {whatsappDialog?.stage}
             </p>
+            {whatsappDialog?.contact && (
+              <Badge variant="secondary" className="text-xs">
+                Perfil: {PROFILE_LABELS[getClientProfile(whatsappDialog.contact)]}
+              </Badge>
+            )}
             <Textarea
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
