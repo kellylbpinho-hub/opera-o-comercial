@@ -306,6 +306,32 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
         isPending={forceCreateMutation.isPending}
       />
 
+      {/* Edit dialog */}
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Editar contato</DialogTitle></DialogHeader>
+          {editing && (
+            <ContactForm
+              cities={cities ?? []}
+              isPending={updateMutation.isPending}
+              submitLabel="Salvar alterações"
+              initialData={{
+                company_name: editing.company_name ?? "",
+                contact_name: editing.contact_name ?? "",
+                phone_raw: editing.phone_raw ?? "",
+                instagram: editing.instagram ?? "",
+                address: editing.address ?? "",
+                city_id: editing.city_id ?? "",
+                niche: editing.niche ?? "",
+                notes: editing.notes ?? "",
+                industry_tags: editing.industry_tags ?? [],
+              }}
+              onSubmit={(form) => updateMutation.mutate(form)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       <div className="flex gap-2 items-center flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
