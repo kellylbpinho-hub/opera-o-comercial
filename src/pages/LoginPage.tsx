@@ -47,7 +47,7 @@ export default function LoginPage() {
     setLoading(false);
   };
 
-  const title = view === "forgot" ? "Recuperar Senha" : "Esteira Comercial PA";
+  const title = view === "forgot" ? "Recuperar Senha" : "Zé Vendas";
   const description = view === "forgot"
     ? "Informe seu e-mail para receber o link de recuperação"
     : view === "login"
