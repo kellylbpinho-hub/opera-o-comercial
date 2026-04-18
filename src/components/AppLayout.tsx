@@ -113,7 +113,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <Button variant="ghost" size="sm" onClick={() => setMobileOpen(true)} className="p-1">
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="font-semibold text-sm truncate flex-1">Esteira Comercial PA</span>
+          <span className="font-semibold text-sm truncate flex-1">Zé Vendas</span>
           <GlobalSearch />
         </div>
         {/* Desktop search bar */}
