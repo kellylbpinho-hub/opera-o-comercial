@@ -228,6 +228,36 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
     onError: (err: any) => toast.error(err.message),
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async (form: ContactFormData) => {
+      if (!editing) throw new Error("Nada para editar.");
+      const phoneNorm = form.phone_raw.replace(/\D/g, "");
+      const city = cities?.find(c => c.id === form.city_id);
+      const { error } = await supabase.from("contacts").update({
+        company_name: form.company_name,
+        company_name_normalized: form.company_name.toLowerCase().trim(),
+        contact_name: form.contact_name || null,
+        phone_raw: form.phone_raw || null,
+        phone_normalized: phoneNorm || null,
+        whatsapp_link: phoneNorm ? `https://wa.me/55${phoneNorm}` : null,
+        instagram: form.instagram || null,
+        address: form.address || null,
+        city_id: form.city_id || editing.city_id,
+        city_name: city?.name ?? editing.city_name,
+        niche: form.niche || null,
+        notes: form.notes || null,
+        industry_tags: form.industry_tags ?? [],
+      }).eq("id", editing.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Contato atualizado!");
+      queryClient.invalidateQueries({ queryKey: ["contacts"] });
+      setEditing(null);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   const handleExportCSV = () => {
     if (contacts.length === 0) { toast.error("Nenhum contato para exportar."); return; }
     const exportData = contacts.map(c => ({
