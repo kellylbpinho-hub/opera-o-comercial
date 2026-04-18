@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Plus, Search, ChevronLeft, ChevronRight, Users, Download, Trash2, Filter, ExternalLink, Instagram, MessageCircle } from "lucide-react";
+import { Plus, Search, ChevronLeft, ChevronRight, Users, Download, Trash2, Filter, ExternalLink, Instagram, MessageCircle, Pencil } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -55,6 +55,7 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterTag, setFilterTag] = useState("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [editing, setEditing] = useState<any | null>(null);
 
   const { data: cities } = useQuery({
     queryKey: ["cities"],
