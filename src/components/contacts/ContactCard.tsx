@@ -55,11 +55,13 @@ export default function ContactCard({
 
   const tags: string[] = Array.isArray(c.industry_tags) ? c.industry_tags : [];
 
-  const handleWhatsAppClick = (e: React.MouseEvent) => {
-    if (waLink && message) {
-      e.preventDefault();
-      setDrawerOpen(true);
+  const handleWhatsAppClick = () => {
+    if (!waLink) return;
+    if (!message?.trim()) {
+      window.open(waLink, "_blank", "noopener,noreferrer");
+      return;
     }
+    setDrawerOpen(true);
   };
 
   return (
@@ -149,6 +151,9 @@ export default function ContactCard({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-sm">{c.company_name}</span>
               <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
+                {profile}
+              </Badge>
+              <Badge variant="outline" className="text-[10px] py-0 px-1.5">
                 {PROFILE_LABELS[profile]}
               </Badge>
             </div>
