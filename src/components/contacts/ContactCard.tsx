@@ -108,6 +108,17 @@ export default function ContactCard({
     setEditableMessage(message ?? "");
   }, [drawerOpen, message]);
 
+  const handleCopyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(editableMessage);
+      setCopied(true);
+      toast.success("Mensagem copiada!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Erro ao copiar mensagem");
+    }
+  };
+
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     touchStartX.current = e.touches[0]?.clientX ?? null;
     setIsDragging(true);
