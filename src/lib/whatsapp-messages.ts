@@ -168,6 +168,27 @@ export function buildWhatsappLink(phone: string | null | undefined, message: str
   return `https://wa.me/${withDdi}?text=${encodeURIComponent(message)}`;
 }
 
+export function normalizeInstagramUsername(instagram: string | null | undefined): string | null {
+  if (!instagram) return null;
+
+  const cleaned = instagram
+    .trim()
+    .replace(/^https?:\/\/(www\.)?instagram\.com\//i, "")
+    .replace(/^@/, "")
+    .replace(/^\//, "")
+    .replace(/\?.*$/, "")
+    .replace(/#.*$/, "")
+    .replace(/\/.*$/, "")
+    .trim();
+
+  return cleaned || null;
+}
+
+export function buildInstagramDirectLink(instagram: string | null | undefined): string | null {
+  const username = normalizeInstagramUsername(instagram);
+  return username ? `https://ig.me/m/${username}` : null;
+}
+
 // ============================================================================
 // Catálogo de indústrias e nichos (usado pela UI de seleção no perfil)
 // ============================================================================
