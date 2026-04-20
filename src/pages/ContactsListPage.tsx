@@ -610,6 +610,15 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
           </div>
         </div>
       )}
+      {/* Mobile FAB */}
+      <button
+        onClick={() => setDialogOpen(true)}
+        className="md:hidden fixed bottom-24 right-4 z-50 flex flex-col items-center justify-center w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 active:scale-95 transition-all"
+        aria-label="Novo contato"
+      >
+        <Plus className="h-6 w-6" />
+        <span className="text-[10px] font-medium">Novo</span>
+      </button>
     </div>
   );
 }
