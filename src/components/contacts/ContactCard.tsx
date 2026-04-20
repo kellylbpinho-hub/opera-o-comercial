@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,7 @@ export default function ContactCard({
   const [offsetX, setOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const touchStartX = useRef<number | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   const phone = c.phone_normalized || c.phone_raw;
   const profile = getClientProfile(c);
@@ -78,6 +79,24 @@ export default function ContactCard({
   };
 
   const resetSwipe = () => setOffsetX(0);
+
+  useEffect(() => {
+    if (offsetX === 0) return;
+
+    const handlePointerOutside = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null;
+
+      if (target?.closest("[data-swipe-action='true']")) return;
+
+      resetSwipe();
+    };
+
+    document.addEventListener("pointerdown", handlePointerOutside, true);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerOutside, true);
+    };
+  }, [offsetX]);
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     touchStartX.current = e.touches[0]?.clientX ?? null;
@@ -115,9 +134,11 @@ export default function ContactCard({
 
   return (
     <>
-      <div className="relative overflow-hidden rounded-lg">
+      <div ref={cardRef} className={`relative overflow-hidden rounded-lg ${offsetX !== 0 ? "z-20" : ""}`}>
+        {offsetX !== 0 && <div className="fixed inset-0 z-10 pointer-events-none" aria-hidden="true" />}
+
         {onRemove && (
-          <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+          <div className="absolute inset-y-0 right-0 z-20 flex items-center pr-2" data-swipe-action="true">
             <Button
               type="button"
               variant="destructive"
@@ -135,7 +156,7 @@ export default function ContactCard({
         )}
 
         {onEdit && (
-          <div className="absolute inset-y-0 left-0 flex items-center pl-2">
+          <div className="absolute inset-y-0 left-0 z-20 flex items-center pl-2" data-swipe-action="true">
             <Button
               type="button"
               size="sm"
@@ -156,6 +177,16 @@ export default function ContactCard({
           style={{
             transform: `translateX(${offsetX}px)`,
             transitionDuration: isDragging ? "0ms" : "200ms",
+          }}
+          onClickCapture={(e) => {
+            if (offsetX === 0) return;
+
+            const target = e.target as HTMLElement;
+            if (target.closest("[data-swipe-action='true']")) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+            resetSwipe();
           }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
