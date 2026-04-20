@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Drawer,
   DrawerClose,
@@ -51,6 +52,7 @@ export default function ContactCard({
   trailingActions,
 }: ContactCardProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editableMessage, setEditableMessage] = useState("");
   const [offsetX, setOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const touchStartX = useRef<number | null>(null);
@@ -60,6 +62,7 @@ export default function ContactCard({
   const profile = getClientProfile(c);
   const message = getWhatsappMessage(c);
   const waLink = phone ? buildWhatsappLink(phone, message) : null;
+  const editedWaLink = phone ? buildWhatsappLink(phone, editableMessage) : null;
   const telLink = phone ? `tel:${String(phone).replace(/\D/g, "")}` : null;
   const igLink = c.instagram
     ? c.instagram.startsWith("http")
@@ -97,6 +100,11 @@ export default function ContactCard({
       document.removeEventListener("pointerdown", handlePointerOutside, true);
     };
   }, [offsetX]);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    setEditableMessage(message ?? "");
+  }, [drawerOpen, message]);
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     touchStartX.current = e.touches[0]?.clientX ?? null;
@@ -282,8 +290,13 @@ export default function ContactCard({
               </Badge>
             </div>
 
-            <div className="rounded-lg border bg-muted/40 p-3 max-h-52 overflow-y-auto">
-              <p className="text-sm whitespace-pre-line text-foreground">{message}</p>
+            <div className="space-y-2">
+              <Textarea
+                value={editableMessage}
+                onChange={(event) => setEditableMessage(event.target.value)}
+                className="min-h-40 resize-none"
+              />
+              <p className="text-xs text-muted-foreground text-right">{editableMessage.length} caracteres</p>
             </div>
           </div>
 
@@ -292,7 +305,7 @@ export default function ContactCard({
               <Button variant="outline" className="flex-1">Cancelar</Button>
             </DrawerClose>
             <Button asChild className="flex-1">
-              <a href={waLink!} target="_blank" rel="noopener noreferrer" onClick={() => setDrawerOpen(false)}>
+              <a href={editedWaLink ?? waLink!} target="_blank" rel="noopener noreferrer" onClick={() => setDrawerOpen(false)}>
                 <ExternalLink className="h-4 w-4 mr-1.5" />Enviar no WhatsApp
               </a>
             </Button>
