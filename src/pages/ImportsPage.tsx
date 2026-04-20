@@ -148,6 +148,9 @@ export default function ImportsPage() {
 
       const errs: ParsedRow[] = [];
       const valid: any[] = [];
+      let dupeOk = 0;
+      let newOk = 0;
+      const dupeIgnored = rows.filter(r => r.is_duplicate && !r.include).length;
 
       for (const row of rows) {
         if (!row.include) continue;
@@ -182,6 +185,8 @@ export default function ImportsPage() {
           owner_user_id: user?.id,
           notes: row.is_duplicate ? "[Importado mesmo sendo duplicata]" : null,
         });
+        if (row.is_duplicate) dupeOk++;
+        else newOk++;
       }
 
       if (valid.length > 0) {
@@ -190,11 +195,18 @@ export default function ImportsPage() {
       }
 
       setErrors(errs);
-      return { imported: valid.length, errors: errs.length };
+      return {
+        newOk,
+        dupeOk,
+        dupeIgnored,
+        errorsCount: errs.length,
+        total: rows.length,
+      };
     },
     onSuccess: (data) => {
-      toast.success(`${data.imported} importados, ${data.errors} com erro.`);
+      toast.success(`${data.newOk + data.dupeOk} contatos importados`);
       setImported(true);
+      setReport(data);
       queryClient.invalidateQueries({ queryKey: ["contacts"] });
     },
     onError: (err: any) => toast.error(err.message),
