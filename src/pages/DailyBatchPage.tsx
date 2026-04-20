@@ -260,7 +260,7 @@ export default function DailyBatchPage() {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <h1 className="text-2xl font-bold tracking-tight">Lote do Dia</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Carteira do dia</h1>
 
       {!todayBatch && (
         <Card className="shadow-sm">
@@ -273,7 +273,7 @@ export default function DailyBatchPage() {
                 </Select>
               </div>
               <Button onClick={() => generateBatchMutation.mutate()} disabled={!selectedCity || generateBatchMutation.isPending}>
-                <Plus className="h-4 w-4 mr-2" />Gerar Lote do Dia
+                <Plus className="h-4 w-4 mr-2" />Gerar carteira do dia
               </Button>
             </div>
           </CardContent>

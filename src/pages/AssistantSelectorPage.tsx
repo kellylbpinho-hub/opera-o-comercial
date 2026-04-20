@@ -55,7 +55,7 @@ export default function AssistantSelectorPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <h1 className="text-2xl font-bold tracking-tight">Selecionar Assistente</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Selecionar marca</h1>
 
       {!showModeSelector ? (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

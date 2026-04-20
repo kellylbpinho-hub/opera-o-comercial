@@ -14,16 +14,16 @@ import MobileBottomNav from "@/components/MobileBottomNav";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/assistente", label: "Assistente", icon: Building2 },
+  { to: "/assistente", label: "Marca", icon: Building2 },
   { to: "/cidades", label: "Cidades", icon: MapPin },
-  { to: "/ativos", label: "Ativos", icon: Users },
-  { to: "/inativos", label: "Inativos", icon: UserMinus },
-  { to: "/leads", label: "Leads Novos", icon: UserPlus },
+  { to: "/ativos", label: "Clientes ativos", icon: Users },
+  { to: "/inativos", label: "Clientes inativos", icon: UserMinus },
+  { to: "/leads", label: "Novos leads", icon: UserPlus },
   { to: "/templates", label: "Templates", icon: MessageSquare },
-  { to: "/lote", label: "Lote do Dia", icon: Package },
-  { to: "/interacoes", label: "Interações", icon: CalendarCheck },
-  { to: "/importacoes", label: "Importações", icon: FileText },
-  { to: "/prospeccao", label: "Prospecção Maps", icon: MapPin },
+  { to: "/lote", label: "Carteira do dia", icon: Package },
+  { to: "/interacoes", label: "Follow-ups", icon: CalendarCheck },
+  { to: "/importacoes", label: "Importar contatos", icon: FileText },
+  { to: "/prospeccao", label: "Prospecção (Google Maps)", icon: MapPin },
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {

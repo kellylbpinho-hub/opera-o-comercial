@@ -65,7 +65,7 @@ export default function InteractionsPage() {
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">Interações / Próximas Ações</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Follow-ups</h1>
         <Button variant="outline" size="sm" onClick={handleExportCSV}>
           <Download className="h-4 w-4 mr-1" />CSV
         </Button>

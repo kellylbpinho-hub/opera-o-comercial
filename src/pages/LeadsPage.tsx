@@ -173,7 +173,7 @@ export default function LeadsPage() {
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Leads Novos</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Novos leads</h1>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild><Button><Plus className="h-4 w-4 mr-2" />Novo Lead</Button></DialogTrigger>
           <DialogContent className="max-w-lg">

@@ -10,9 +10,9 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/lote", label: "Lote", icon: Package },
-  { to: "/leads", label: "Contatos", icon: Users },
-  { to: "/prospeccao", label: "Prospecção", icon: MapPin },
+  { to: "/lote", label: "Hoje", icon: Package },
+  { to: "/leads", label: "Leads", icon: Users },
+  { to: "/prospeccao", label: "Prospectar", icon: MapPin },
   { to: "/importacoes", label: "Importar", icon: FileText },
 ];
 

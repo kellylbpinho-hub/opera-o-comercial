@@ -255,10 +255,10 @@ export default function DashboardPage() {
                 Para começar, siga estes passos:
               </p>
               <ol className="text-sm text-muted-foreground mt-3 text-left max-w-md space-y-1">
-                <li>1. Selecione um <strong>assistente</strong> no menu lateral</li>
+                <li>1. Selecione uma <strong>marca</strong> no menu lateral</li>
                 <li>2. Importe sua base de <strong>clientes ativos e inativos</strong> via CSV</li>
-                <li>3. Cadastre <strong>leads novos</strong> pelo Maps ou manualmente</li>
-                <li>4. Gere o <strong>Lote do Dia</strong> e comece a prospectar!</li>
+                <li>3. Cadastre <strong>novos leads</strong> pelo Maps ou manualmente</li>
+                <li>4. Gere a <strong>Carteira do dia</strong> e comece a prospectar!</li>
               </ol>
             </div>
           </CardContent>
@@ -346,12 +346,12 @@ export default function DashboardPage() {
 
         {topAssistants && topAssistants.length > 0 && (
           <Card className="shadow-sm">
-            <CardHeader><CardTitle className="text-base">Ranking Assistentes</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Ranking por marca</CardTitle></CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Assistente</TableHead>
+                    <TableHead>Marca</TableHead>
                     <TableHead className="text-center">Total</TableHead>
                     <TableHead className="text-center">Qualificados</TableHead>
                     <TableHead className="text-center">Taxa</TableHead>
@@ -376,13 +376,13 @@ export default function DashboardPage() {
       {/* By Assistant (today) */}
       {byAssistant && byAssistant.length > 0 && (
         <Card className="shadow-sm">
-          <CardHeader><CardTitle className="text-base">Kanban por Assistente (hoje)</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Kanban por marca (hoje)</CardTitle></CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Assistente</TableHead>
+                    <TableHead>Marca</TableHead>
                     {Object.keys(LANE_LABELS).map(l => <TableHead key={l} className="text-center">{LANE_LABELS[l]}</TableHead>)}
                     <TableHead className="text-center">Total</TableHead>
                   </TableRow>
