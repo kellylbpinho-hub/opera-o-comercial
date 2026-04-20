@@ -255,10 +255,10 @@ export default function DashboardPage() {
                 Para começar, siga estes passos:
               </p>
               <ol className="text-sm text-muted-foreground mt-3 text-left max-w-md space-y-1">
-                <li>1. Selecione um <strong>assistente</strong> no menu lateral</li>
+                <li>1. Selecione uma <strong>marca</strong> no menu lateral</li>
                 <li>2. Importe sua base de <strong>clientes ativos e inativos</strong> via CSV</li>
-                <li>3. Cadastre <strong>leads novos</strong> pelo Maps ou manualmente</li>
-                <li>4. Gere o <strong>Lote do Dia</strong> e comece a prospectar!</li>
+                <li>3. Cadastre <strong>novos leads</strong> pelo Maps ou manualmente</li>
+                <li>4. Gere a <strong>Carteira do dia</strong> e comece a prospectar!</li>
               </ol>
             </div>
           </CardContent>
@@ -346,7 +346,7 @@ export default function DashboardPage() {
 
         {topAssistants && topAssistants.length > 0 && (
           <Card className="shadow-sm">
-            <CardHeader><CardTitle className="text-base">Ranking Assistentes</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Ranking por marca</CardTitle></CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
