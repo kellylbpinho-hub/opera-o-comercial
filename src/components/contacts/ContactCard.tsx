@@ -309,7 +309,23 @@ export default function ContactCard({
                 onChange={(event) => setEditableMessage(event.target.value)}
                 className="min-h-40 resize-none"
               />
-              <p className="text-xs text-muted-foreground text-right">{editableMessage.length} caracteres</p>
+              <div className="flex items-center justify-between">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-muted-foreground"
+                  onClick={handleCopyMessage}
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 mr-1.5 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4 mr-1.5" />
+                  )}
+                  Copiar
+                </Button>
+                <p className="text-xs text-muted-foreground">{editableMessage.length} caracteres</p>
+              </div>
             </div>
           </div>
 
