@@ -82,18 +82,18 @@ export default function DailyBatchPage() {
       }
 
       const categories = [
-        { cat: "NOVO_MAPS", target: 15 },
-        { cat: "INATIVO", target: 10 },
-        { cat: "ATIVO", target: 5 },
+        { cats: ["NOVO_MAPS", "NOVO_MANUAL"], target: batch.target_new_maps ?? 15 },
+        { cats: ["INATIVO"], target: batch.target_inactive ?? 10 },
+        { cats: ["ATIVO"], target: batch.target_active ?? 5 },
       ];
 
       let orderIdx = 0;
       const items: any[] = [];
 
-      for (const { cat, target } of categories) {
+      for (const { cats, target } of categories) {
         let q = supabase.from("contacts").select("id")
           .eq("industry_id", industryId)
-          .eq("category", cat)
+          .in("category", cats)
           .eq("city_id", selectedCity)
           .eq("status", "NAO_CONTATADO")
           .is("deleted_at", null)
@@ -105,7 +105,7 @@ export default function DailyBatchPage() {
           const remaining = target - found.length;
           let q2 = supabase.from("contacts").select("id")
             .eq("industry_id", industryId)
-            .eq("category", cat)
+            .in("category", cats)
             .eq("status", "NAO_CONTATADO")
             .is("deleted_at", null)
             .neq("city_id", selectedCity)
