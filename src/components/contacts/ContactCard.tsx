@@ -15,6 +15,7 @@ import {
 import { Pencil, MessageCircle, Phone, Instagram, MapPin, ExternalLink, Trash2, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import {
+  buildInstagramDirectLink,
   buildWhatsappLink,
   getWhatsappMessage,
   PROFILE_LABELS,
@@ -52,6 +53,7 @@ export default function ContactCard({
   onRemove,
   trailingActions,
 }: ContactCardProps) {
+  const [selectedChannel, setSelectedChannel] = useState<"whatsapp" | "instagram">("whatsapp");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editableMessage, setEditableMessage] = useState("");
   const [copied, setCopied] = useState(false);
@@ -66,11 +68,7 @@ export default function ContactCard({
   const waLink = phone ? buildWhatsappLink(phone, message) : null;
   const editedWaLink = phone ? buildWhatsappLink(phone, editableMessage) : null;
   const telLink = phone ? `tel:${String(phone).replace(/\D/g, "")}` : null;
-  const igLink = c.instagram
-    ? c.instagram.startsWith("http")
-      ? c.instagram
-      : `https://instagram.com/${c.instagram.replace(/^@/, "")}`
-    : null;
+  const igLink = buildInstagramDirectLink(c.instagram);
 
   const tags: string[] = Array.isArray(c.industry_tags) ? c.industry_tags : [];
 
@@ -106,6 +104,7 @@ export default function ContactCard({
   useEffect(() => {
     if (!drawerOpen) return;
     setEditableMessage(message ?? "");
+    setSelectedChannel("whatsapp");
   }, [drawerOpen, message]);
 
   const handleCopyMessage = async () => {
@@ -304,6 +303,28 @@ export default function ContactCard({
             </div>
 
             <div className="space-y-2">
+              {igLink && (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={selectedChannel === "whatsapp" ? "default" : "outline"}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setSelectedChannel("whatsapp")}
+                  >
+                    <MessageCircle className="h-4 w-4 mr-1.5" />WhatsApp
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={selectedChannel === "instagram" ? "default" : "outline"}
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => setSelectedChannel("instagram")}
+                  >
+                    <Instagram className="h-4 w-4 mr-1.5" />Instagram Direct
+                  </Button>
+                </div>
+              )}
               <Textarea
                 value={editableMessage}
                 onChange={(event) => setEditableMessage(event.target.value)}
@@ -334,8 +355,14 @@ export default function ContactCard({
               <Button variant="outline" className="flex-1">Cancelar</Button>
             </DrawerClose>
             <Button asChild className="flex-1">
-              <a href={editedWaLink ?? waLink!} target="_blank" rel="noopener noreferrer" onClick={() => setDrawerOpen(false)}>
-                <ExternalLink className="h-4 w-4 mr-1.5" />Enviar no WhatsApp
+              <a
+                href={selectedChannel === "instagram" ? igLink! : (editedWaLink ?? waLink!)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setDrawerOpen(false)}
+              >
+                <ExternalLink className="h-4 w-4 mr-1.5" />
+                {selectedChannel === "instagram" ? "Enviar no Instagram" : "Enviar no WhatsApp"}
               </a>
             </Button>
           </DrawerFooter>

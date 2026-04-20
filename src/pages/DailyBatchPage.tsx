@@ -10,8 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Plus, Copy, ExternalLink, CheckCircle, Send } from "lucide-react";
-import { getWhatsappMessage, getClientProfile, PROFILE_LABELS } from "@/lib/whatsapp-messages";
+import { Plus, Copy, ExternalLink, CheckCircle, Send, Instagram, MessageCircle } from "lucide-react";
+import { buildInstagramDirectLink, getWhatsappMessage, getClientProfile, PROFILE_LABELS } from "@/lib/whatsapp-messages";
 
 const LANES = [
   { key: "A_CONTATAR", label: "A Contatar", color: "bg-kanban-contatar" },
@@ -28,6 +28,7 @@ export default function DailyBatchPage() {
   const [selectedCity, setSelectedCity] = useState("");
   const [whatsappDialog, setWhatsappDialog] = useState<{ contact: any; stage: string } | null>(null);
   const [messageText, setMessageText] = useState("");
+  const [messageChannel, setMessageChannel] = useState<"whatsapp" | "instagram">("whatsapp");
   const [sendingWhatsapp, setSendingWhatsapp] = useState(false);
 
   const { data: cities } = useQuery({
@@ -225,7 +226,19 @@ export default function DailyBatchPage() {
       }
     }
     setMessageText(templateText);
+    setMessageChannel("whatsapp");
     setWhatsappDialog({ contact, stage });
+  };
+
+  const sendInstagramDirect = () => {
+    const instagramLink = buildInstagramDirectLink(whatsappDialog?.contact?.instagram);
+    if (!instagramLink) {
+      toast.error("Contato sem Instagram cadastrado");
+      return;
+    }
+
+    window.open(instagramLink, "_blank", "noopener,noreferrer");
+    setWhatsappDialog(null);
   };
 
   const sendWhatsapp = async () => {
@@ -322,6 +335,13 @@ export default function DailyBatchPage() {
                               <Send className="h-3 w-3 mr-1" />Enviar
                             </Button>
                           )}
+                          {buildInstagramDirectLink(contact.instagram) && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
+                              <a href={buildInstagramDirectLink(contact.instagram)!} target="_blank" rel="noopener noreferrer">
+                                <Instagram className="h-3 w-3 mr-1" />Instagram
+                              </a>
+                            </Button>
+                          )}
                           {lane.key === "A_CONTATAR" && (
                             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => updateLaneMutation.mutate({ itemId: item.id, lane: "CONTATADO", contactId: contact.id, currentLane: lane.key })}>
                               <CheckCircle className="h-3 w-3 mr-1" />Contatado
@@ -361,6 +381,28 @@ export default function DailyBatchPage() {
                 Perfil: {PROFILE_LABELS[getClientProfile(whatsappDialog.contact)]}
               </Badge>
             )}
+            {buildInstagramDirectLink(whatsappDialog?.contact?.instagram) && (
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={messageChannel === "whatsapp" ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setMessageChannel("whatsapp")}
+                >
+                  <MessageCircle className="h-4 w-4 mr-1.5" />WhatsApp
+                </Button>
+                <Button
+                  type="button"
+                  variant={messageChannel === "instagram" ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setMessageChannel("instagram")}
+                >
+                  <Instagram className="h-4 w-4 mr-1.5" />Instagram Direct
+                </Button>
+              </div>
+            )}
             <Textarea
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
@@ -369,9 +411,9 @@ export default function DailyBatchPage() {
             />
             <div className="flex gap-2 justify-end">
               <Button variant="outline" onClick={() => setWhatsappDialog(null)}>Cancelar</Button>
-              <Button onClick={sendWhatsapp} disabled={sendingWhatsapp || !messageText.trim()}>
+              <Button onClick={messageChannel === "instagram" ? sendInstagramDirect : sendWhatsapp} disabled={sendingWhatsapp || !messageText.trim()}>
                 <Send className="h-4 w-4 mr-2" />
-                {sendingWhatsapp ? "Enviando..." : "Enviar WhatsApp"}
+                {sendingWhatsapp ? "Enviando..." : messageChannel === "instagram" ? "Enviar no Instagram" : "Enviar WhatsApp"}
               </Button>
             </div>
           </div>
