@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { IndustryProvider } from "@/contexts/IndustryContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import AppLayout from "@/components/AppLayout";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import RealtimeNotifications from "@/components/RealtimeNotifications";
@@ -25,6 +26,11 @@ import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
 
+function MobileRedirect() {
+  const isMobile = useIsMobile();
+  return isMobile ? <Navigate to="/today" replace /> : <DashboardPage />;
+}
+
 function ProtectedRoutes() {
   const { session, loading } = useAuth();
   if (loading) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Carregando...</div>;
@@ -35,7 +41,7 @@ function ProtectedRoutes() {
       <RealtimeNotifications />
       <AppLayout>
         <Routes>
-          <Route path="/" element={<DashboardPage />} />
+          <Route path="/" element={<MobileRedirect />} />
           <Route path="/today" element={<TodayPage />} />
           <Route path="/assistente" element={<AssistantSelectorPage />} />
           <Route path="/cidades" element={<CitiesBacklogPage />} />
