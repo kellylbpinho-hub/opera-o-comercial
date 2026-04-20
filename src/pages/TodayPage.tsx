@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Package, Clock, UserPlus, Target, ChevronRight, Building2 } from "lucide-react";
+import { Package, Clock, UserPlus, Target, ChevronRight, Building2, Calendar, MessageCircle } from "lucide-react";
+import { buildWhatsappLink, getWhatsappMessage } from "@/lib/whatsapp-messages";
 
 /**
  * TodayPage — home mobile-first do app.
@@ -86,6 +87,24 @@ export default function TodayPage() {
       return count ?? 0;
     },
     enabled: !!industryId,
+  });
+
+  // Próximos follow-ups agendados (próximos 5)
+  const { data: upcomingFollowups } = useQuery({
+    queryKey: ["today-upcoming-followups"],
+    queryFn: async () => {
+      const now = new Date().toISOString();
+      const { data } = await supabase
+        .from("interactions")
+        .select("id, next_action_at, contact:contacts(id, company_name, phone_normalized, phone_raw)")
+        .not("next_action_at", "is", null)
+        .is("reply_at", null)
+        .gt("next_action_at", now)
+        .order("next_action_at", { ascending: true })
+        .limit(5);
+      return data ?? [];
+    },
+    refetchInterval: 60_000,
   });
 
   const totalBatch = batchItems?.length ?? 0;
@@ -230,6 +249,53 @@ export default function TodayPage() {
           </Link>
         </Button>
       </div>
+
+      {/* Próximos follow-ups */}
+      <Card className="shadow-sm mt-4">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-primary" />
+            Próximos follow-ups
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {upcomingFollowups && upcomingFollowups.length > 0 ? (
+            upcomingFollowups.map((followup: any) => {
+              const contact = followup.contact;
+              const phone = contact?.phone_normalized || contact?.phone_raw;
+              const waLink = phone ? buildWhatsappLink(phone, getWhatsappMessage(contact)) : null;
+              const date = new Date(followup.next_action_at);
+              const formattedDate = date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+              const formattedTime = date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+              return (
+                <div key={followup.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{contact?.company_name || "—"}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {contact?.contact_name || contact?.phone_raw || "—"}
+                    </p>
+                    <p className="text-xs text-primary mt-1">
+                      {formattedDate} · {formattedTime}
+                    </p>
+                  </div>
+                  {waLink && (
+                    <Button asChild variant="default" size="sm" className="h-9 px-3 bg-accent hover:bg-accent/90 text-accent-foreground flex-shrink-0">
+                      <a href={waLink} target="_blank" rel="noopener noreferrer" title="WhatsApp">
+                        <MessageCircle className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <div className="text-center py-6">
+              <p className="text-sm text-muted-foreground">Nenhum follow-up agendado 🎉</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
