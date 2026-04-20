@@ -89,6 +89,24 @@ export default function TodayPage() {
     enabled: !!industryId,
   });
 
+  // Próximos follow-ups agendados (próximos 5)
+  const { data: upcomingFollowups } = useQuery({
+    queryKey: ["today-upcoming-followups"],
+    queryFn: async () => {
+      const now = new Date().toISOString();
+      const { data } = await supabase
+        .from("interactions")
+        .select("id, next_action_at, contact:contacts(id, company_name, phone_normalized, phone_raw)")
+        .not("next_action_at", "is", null)
+        .is("reply_at", null)
+        .gt("next_action_at", now)
+        .order("next_action_at", { ascending: true })
+        .limit(5);
+      return data ?? [];
+    },
+    refetchInterval: 60_000,
+  });
+
   const totalBatch = batchItems?.length ?? 0;
   // "Concluído" = saiu da fila A_CONTATAR (foi contatado, respondeu, qualificou ou sem interesse)
   const doneBatch = batchItems?.filter(i => i.lane !== "A_CONTATAR").length ?? 0;
