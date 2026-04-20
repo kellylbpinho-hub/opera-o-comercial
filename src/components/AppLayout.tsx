@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import OverdueFollowupsBanner from "@/components/OverdueFollowupsBanner";
 import GlobalSearch from "@/components/GlobalSearch";
 import ThemeToggle from "@/components/ThemeToggle";
+import MobileBottomNav from "@/components/MobileBottomNav";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -107,12 +108,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       )}
 
       {/* Main */}
-      <main className="flex-1 overflow-y-auto">
-        {/* Mobile header */}
+      <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
+        {/* Mobile header - sem botão hambúrguer (bottom nav substitui) */}
         <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b bg-background sticky top-0 z-10">
-          <Button variant="ghost" size="sm" onClick={() => setMobileOpen(true)} className="p-1">
-            <Menu className="h-5 w-5" />
-          </Button>
           <span className="font-semibold text-sm truncate flex-1">Zé Vendas</span>
           <GlobalSearch />
         </div>
@@ -125,6 +123,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           {children}
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
     </div>
   );
 }
