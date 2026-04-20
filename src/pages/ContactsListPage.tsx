@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import ContactForm, { type ContactFormData } from "@/components/contacts/ContactForm";
 import DupeModal, { type DupeCandidate } from "@/components/contacts/DupeModal";
+import ContactCard from "@/components/contacts/ContactCard";
 import { downloadCSV } from "@/lib/csv-export";
 import { buildWhatsappLink, getWhatsappMessage, PROFILE_LABELS, getClientProfile, INDUSTRY_CATALOG, formatTag } from "@/lib/whatsapp-messages";
 
@@ -437,119 +438,163 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
       )}
 
       {(contacts.length > 0 || search || activeFilters > 0) && (
-        <div className="rounded-lg border bg-card shadow-sm overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10">
-                  <Checkbox
-                    checked={contacts.length > 0 && selected.size === contacts.length}
-                    onCheckedChange={toggleAll}
-                  />
-                </TableHead>
-                <TableHead className="min-w-[140px]">Empresa</TableHead>
-                <TableHead className="hidden sm:table-cell">Contato</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead className="hidden md:table-cell">Cidade</TableHead>
-                <TableHead className="hidden lg:table-cell">Nicho</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="hidden lg:table-cell">Links</TableHead>
-                <TableHead className="w-10"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading && Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}>
-                  {Array.from({ length: 9 }).map((_, j) => (
-                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                  ))}
-                </TableRow>
-              ))}
-              {!isLoading && contacts.map(c => (
-                <TableRow key={c.id} className={selected.has(c.id) ? "bg-primary/5" : ""}>
-                  <TableCell>
-                    <Checkbox checked={selected.has(c.id)} onCheckedChange={() => toggleSelect(c.id)} />
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    <div className="flex flex-col gap-1">
-                      <span>{c.company_name}</span>
-                      {Array.isArray(c.industry_tags) && c.industry_tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {c.industry_tags.slice(0, 3).map((t: string) => (
-                            <Badge key={t} variant="secondary" className="text-[10px] py-0 px-1.5">{formatTag(t)}</Badge>
-                          ))}
-                          {c.industry_tags.length > 3 && (
-                            <Badge variant="outline" className="text-[10px] py-0 px-1.5">+{c.industry_tags.length - 3}</Badge>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden sm:table-cell">{c.contact_name || "—"}</TableCell>
-                  <TableCell>{c.phone_raw || "—"}</TableCell>
-                  <TableCell className="hidden md:table-cell">{c.city_name || "—"}</TableCell>
-                  <TableCell className="hidden lg:table-cell">{c.niche || "—"}</TableCell>
-                  <TableCell>{c.status}</TableCell>
-                  <TableCell className="hidden lg:table-cell">
-                    <div className="flex gap-1">
-                      {(c.phone_normalized || c.phone_raw) && (
-                        <a
-                          href={buildWhatsappLink(c.phone_normalized || c.phone_raw, getWhatsappMessage(c)) || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title={`WhatsApp · ${PROFILE_LABELS[getClientProfile(c)]}`}
-                          className="text-accent hover:text-accent/80"
-                        >
-                          <MessageCircle className="h-4 w-4" />
-                        </a>
-                      )}
-                      {c.instagram && (
-                        <a
-                          href={c.instagram.startsWith("http") ? c.instagram : `https://instagram.com/${c.instagram.replace(/^@/, "")}`}
-                          target="_blank" rel="noopener noreferrer" title="Instagram"
-                          className="text-destructive hover:text-destructive/80"
-                        >
-                          <Instagram className="h-4 w-4" />
-                        </a>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setEditing(c)} title="Editar">
-                        <Pencil className="h-3.5 w-3.5" />
+        <>
+          {/* Mobile: cards */}
+          <div className="block md:hidden space-y-2">
+            {isLoading && Array.from({ length: 5 }).map((_, i) => (
+              <Card key={i} className="shadow-sm"><CardContent className="p-3"><Skeleton className="h-20 w-full" /></CardContent></Card>
+            ))}
+            {!isLoading && contacts.map(c => (
+              <ContactCard
+                key={c.id}
+                contact={c}
+                categoryLabel={category}
+                selected={selected.has(c.id)}
+                onToggleSelect={() => toggleSelect(c.id)}
+                onEdit={() => setEditing(c)}
+                trailingActions={
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-10 px-3 text-destructive hover:text-destructive" title="Remover">
+                        <Trash2 className="h-4 w-4" />
                       </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remover contato?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              O contato "{c.company_name}" será removido.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => softDeleteMutation.mutate(c.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                              Remover
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </TableCell>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Remover contato?</AlertDialogTitle>
+                        <AlertDialogDescription>O contato "{c.company_name}" será removido.</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => softDeleteMutation.mutate(c.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Remover
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                }
+              />
+            ))}
+            {!isLoading && contacts.length === 0 && (search || activeFilters > 0) && (
+              <Card className="shadow-sm"><CardContent className="py-8 text-center text-sm text-muted-foreground">Nenhum contato encontrado.</CardContent></Card>
+            )}
+          </div>
+
+          {/* Desktop: tabela (intacta) */}
+          <div className="hidden md:block rounded-lg border bg-card shadow-sm overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={contacts.length > 0 && selected.size === contacts.length}
+                      onCheckedChange={toggleAll}
+                    />
+                  </TableHead>
+                  <TableHead className="min-w-[140px]">Empresa</TableHead>
+                  <TableHead className="hidden sm:table-cell">Contato</TableHead>
+                  <TableHead>Telefone</TableHead>
+                  <TableHead className="hidden md:table-cell">Cidade</TableHead>
+                  <TableHead className="hidden lg:table-cell">Nicho</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden lg:table-cell">Links</TableHead>
+                  <TableHead className="w-10"></TableHead>
                 </TableRow>
-              ))}
-              {!isLoading && contacts.length === 0 && (search || activeFilters > 0) && (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum contato encontrado.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {isLoading && Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: 9 }).map((_, j) => (
+                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+                {!isLoading && contacts.map(c => (
+                  <TableRow key={c.id} className={selected.has(c.id) ? "bg-primary/5" : ""}>
+                    <TableCell>
+                      <Checkbox checked={selected.has(c.id)} onCheckedChange={() => toggleSelect(c.id)} />
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex flex-col gap-1">
+                        <span>{c.company_name}</span>
+                        {Array.isArray(c.industry_tags) && c.industry_tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {c.industry_tags.slice(0, 3).map((t: string) => (
+                              <Badge key={t} variant="secondary" className="text-[10px] py-0 px-1.5">{formatTag(t)}</Badge>
+                            ))}
+                            {c.industry_tags.length > 3 && (
+                              <Badge variant="outline" className="text-[10px] py-0 px-1.5">+{c.industry_tags.length - 3}</Badge>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">{c.contact_name || "—"}</TableCell>
+                    <TableCell>{c.phone_raw || "—"}</TableCell>
+                    <TableCell className="hidden md:table-cell">{c.city_name || "—"}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{c.niche || "—"}</TableCell>
+                    <TableCell>{c.status}</TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      <div className="flex gap-1">
+                        {(c.phone_normalized || c.phone_raw) && (
+                          <a
+                            href={buildWhatsappLink(c.phone_normalized || c.phone_raw, getWhatsappMessage(c)) || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={`WhatsApp · ${PROFILE_LABELS[getClientProfile(c)]}`}
+                            className="text-accent hover:text-accent/80"
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </a>
+                        )}
+                        {c.instagram && (
+                          <a
+                            href={c.instagram.startsWith("http") ? c.instagram : `https://instagram.com/${c.instagram.replace(/^@/, "")}`}
+                            target="_blank" rel="noopener noreferrer" title="Instagram"
+                            className="text-destructive hover:text-destructive/80"
+                          >
+                            <Instagram className="h-4 w-4" />
+                          </a>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setEditing(c)} title="Editar">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Remover contato?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                O contato "{c.company_name}" será removido.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => softDeleteMutation.mutate(c.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Remover
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {!isLoading && contacts.length === 0 && (search || activeFilters > 0) && (
+                  <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum contato encontrado.</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
 
       {totalPages > 1 && (

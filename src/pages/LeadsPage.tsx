@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Plus, Search, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import ContactForm, { type ContactFormData } from "@/components/contacts/ContactForm";
 import DupeModal, { type DupeCandidate } from "@/components/contacts/DupeModal";
+import ContactCard from "@/components/contacts/ContactCard";
 import { formatTag } from "@/lib/whatsapp-messages";
 
 const PAGE_SIZE = 50;
@@ -223,7 +224,25 @@ export default function LeadsPage() {
         <Input className="pl-9" placeholder="Buscar..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} />
       </div>
 
-      <div className="rounded-lg border bg-card shadow-sm overflow-x-auto">
+      {/* Mobile: cards */}
+      <div className="block md:hidden space-y-2">
+        {leads.map(l => (
+          <ContactCard
+            key={l.id}
+            contact={l}
+            categoryLabel={tab === "maps" ? "Maps" : "Manual"}
+            onEdit={() => setEditing(l)}
+          />
+        ))}
+        {leads.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground text-sm border rounded-lg bg-card">
+            Nenhum lead encontrado.
+          </div>
+        )}
+      </div>
+
+      {/* Desktop: tabela (intacta) */}
+      <div className="hidden md:block rounded-lg border bg-card shadow-sm overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
