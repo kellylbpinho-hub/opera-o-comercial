@@ -333,6 +333,8 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
             />
           )}
         </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
