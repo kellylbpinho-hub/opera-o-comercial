@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Package, Clock, UserPlus, Target, ChevronRight, Building2 } from "lucide-react";
+import { Package, Clock, UserPlus, Target, ChevronRight, Building2, Calendar, MessageCircle } from "lucide-react";
+import { buildWhatsappLink, getWhatsappMessage } from "@/lib/whatsapp-messages";
 
 /**
  * TodayPage — home mobile-first do app.
