@@ -54,6 +54,7 @@ export default function ContactCard({
 }: ContactCardProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editableMessage, setEditableMessage] = useState("");
+  const [copied, setCopied] = useState(false);
   const [offsetX, setOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const touchStartX = useRef<number | null>(null);
