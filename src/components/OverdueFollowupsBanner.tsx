@@ -27,7 +27,7 @@ export default function OverdueFollowupsBanner() {
       className="flex items-center gap-2 bg-destructive/10 border border-destructive/30 text-destructive rounded-lg px-4 py-2 text-sm font-medium hover:bg-destructive/20 transition-colors"
     >
       <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-      <span>{overdueCount} follow-up{overdueCount > 1 ? "s" : ""} vencido{overdueCount > 1 ? "s" : ""}</span>
+      <span>{overdueCount} follow-up{overdueCount > 1 ? "s" : ""} atrasado{overdueCount > 1 ? "s" : ""}</span>
     </Link>
   );
 }

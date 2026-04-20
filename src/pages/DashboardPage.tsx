@@ -351,7 +351,7 @@ export default function DashboardPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Assistente</TableHead>
+                    <TableHead>Marca</TableHead>
                     <TableHead className="text-center">Total</TableHead>
                     <TableHead className="text-center">Qualificados</TableHead>
                     <TableHead className="text-center">Taxa</TableHead>
@@ -376,13 +376,13 @@ export default function DashboardPage() {
       {/* By Assistant (today) */}
       {byAssistant && byAssistant.length > 0 && (
         <Card className="shadow-sm">
-          <CardHeader><CardTitle className="text-base">Kanban por Assistente (hoje)</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Kanban por marca (hoje)</CardTitle></CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Assistente</TableHead>
+                    <TableHead>Marca</TableHead>
                     {Object.keys(LANE_LABELS).map(l => <TableHead key={l} className="text-center">{LANE_LABELS[l]}</TableHead>)}
                     <TableHead className="text-center">Total</TableHead>
                   </TableRow>
