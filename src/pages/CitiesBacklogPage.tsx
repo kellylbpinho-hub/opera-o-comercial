@@ -42,7 +42,7 @@ export default function CitiesBacklogPage() {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <h1 className="text-2xl font-bold tracking-tight">Backlog de Cidades</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Cidades a trabalhar</h1>
 
       <div className="flex gap-3 flex-wrap">
         <Select value={regionFilter} onValueChange={setRegionFilter}>
