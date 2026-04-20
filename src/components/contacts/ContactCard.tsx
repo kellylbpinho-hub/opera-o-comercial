@@ -12,7 +12,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { Pencil, MessageCircle, Phone, Instagram, MapPin, ExternalLink, Trash2 } from "lucide-react";
+import { Pencil, MessageCircle, Phone, Instagram, MapPin, ExternalLink, Trash2, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 import {
   buildWhatsappLink,
   getWhatsappMessage,
@@ -53,6 +54,7 @@ export default function ContactCard({
 }: ContactCardProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editableMessage, setEditableMessage] = useState("");
+  const [copied, setCopied] = useState(false);
   const [offsetX, setOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const touchStartX = useRef<number | null>(null);
@@ -105,6 +107,17 @@ export default function ContactCard({
     if (!drawerOpen) return;
     setEditableMessage(message ?? "");
   }, [drawerOpen, message]);
+
+  const handleCopyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(editableMessage);
+      setCopied(true);
+      toast.success("Mensagem copiada!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Erro ao copiar mensagem");
+    }
+  };
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     touchStartX.current = e.touches[0]?.clientX ?? null;
@@ -296,7 +309,23 @@ export default function ContactCard({
                 onChange={(event) => setEditableMessage(event.target.value)}
                 className="min-h-40 resize-none"
               />
-              <p className="text-xs text-muted-foreground text-right">{editableMessage.length} caracteres</p>
+              <div className="flex items-center justify-between">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-muted-foreground"
+                  onClick={handleCopyMessage}
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 mr-1.5 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4 mr-1.5" />
+                  )}
+                  Copiar
+                </Button>
+                <p className="text-xs text-muted-foreground">{editableMessage.length} caracteres</p>
+              </div>
             </div>
           </div>
 
