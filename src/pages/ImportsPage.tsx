@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Upload, FileText, AlertTriangle, CheckCircle, Loader2, ShieldAlert } from "lucide-react";
+import { Upload, FileText, AlertTriangle, CheckCircle, Loader2, ShieldAlert, XCircle, Sparkles } from "lucide-react";
 
 interface ParsedRow {
   company_name: string;
@@ -38,6 +40,8 @@ export default function ImportsPage() {
   const [imported, setImported] = useState(false);
   const [errors, setErrors] = useState<ParsedRow[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
+  const [showOnlyDupes, setShowOnlyDupes] = useState(false);
+  const [report, setReport] = useState<{ newOk: number; dupeOk: number; dupeIgnored: number; errorsCount: number; total: number } | null>(null);
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
