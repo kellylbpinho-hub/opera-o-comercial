@@ -55,11 +55,13 @@ export default function ContactCard({
 
   const tags: string[] = Array.isArray(c.industry_tags) ? c.industry_tags : [];
 
-  const handleWhatsAppClick = (e: React.MouseEvent) => {
-    if (waLink && message) {
-      e.preventDefault();
-      setDrawerOpen(true);
+  const handleWhatsAppClick = () => {
+    if (!waLink) return;
+    if (!message?.trim()) {
+      window.open(waLink, "_blank", "noopener,noreferrer");
+      return;
     }
+    setDrawerOpen(true);
   };
 
   return (
