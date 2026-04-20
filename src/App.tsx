@@ -20,6 +20,7 @@ import InteractionsPage from "@/pages/InteractionsPage";
 import ImportsPage from "@/pages/ImportsPage";
 import SearchLeadsPage from "@/pages/SearchLeadsPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import TodayPage from "@/pages/TodayPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ function ProtectedRoutes() {
       <AppLayout>
         <Routes>
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/today" element={<TodayPage />} />
           <Route path="/assistente" element={<AssistantSelectorPage />} />
           <Route path="/cidades" element={<CitiesBacklogPage />} />
           <Route path="/ativos" element={<ContactsListPage category="ATIVO" title="Ativos" source="BASE_ATIVOS" />} />
