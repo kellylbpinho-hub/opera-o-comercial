@@ -119,7 +119,18 @@ export default function ImportsPage() {
     setRows(rs => rs.map((r, i) => i === idx ? { ...r, include: !r.include } : r));
   };
 
+  /** Marca/desmarca em lote apenas as linhas duplicadas. */
+  const setAllDuplicates = (include: boolean) => {
+    setRows(rs => rs.map(r => r.is_duplicate ? { ...r, include } : r));
+  };
+
+  /** Marca/desmarca todas as linhas (duplicatas + novas). */
+  const setAll = (include: boolean) => {
+    setRows(rs => rs.map(r => ({ ...r, include })));
+  };
+
   const dupCount = rows.filter(r => r.is_duplicate).length;
+  const dupIncludedCount = rows.filter(r => r.is_duplicate && r.include).length;
   const toImportCount = rows.filter(r => r.include).length;
 
   const importMutation = useMutation({
@@ -230,9 +241,27 @@ export default function ImportsPage() {
           </div>
 
           {dupCount > 0 && (
-            <p className="text-xs text-muted-foreground">
-              Linhas duplicadas estão desmarcadas por padrão. Marque o checkbox se quiser importar mesmo assim.
-            </p>
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Linhas duplicadas estão desmarcadas por padrão. Use os botões abaixo para decidir em lote o que fazer com as <strong>{dupCount}</strong> duplicatas detectadas
+                {dupIncludedCount > 0 && <> ({dupIncludedCount} marcadas para importar)</>}.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={() => setAllDuplicates(true)}>
+                  Importar todas as duplicatas
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setAllDuplicates(false)}>
+                  Ignorar todas as duplicatas
+                </Button>
+                <span className="mx-1 h-6 w-px bg-border self-center" />
+                <Button size="sm" variant="ghost" onClick={() => setAll(true)}>
+                  Selecionar todas
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setAll(false)}>
+                  Desmarcar todas
+                </Button>
+              </div>
+            </div>
           )}
 
           <div className="rounded-lg border bg-card shadow-sm overflow-x-auto max-h-96 overflow-y-auto">
