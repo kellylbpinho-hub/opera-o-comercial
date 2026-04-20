@@ -76,6 +76,8 @@ export default function ImportsPage() {
     setRows(parsed);
     setImported(false);
     setErrors([]);
+    setReport(null);
+    setShowOnlyDupes(false);
 
     // Pré-checar duplicatas
     if (industryId) {
@@ -136,6 +138,9 @@ export default function ImportsPage() {
   const dupCount = rows.filter(r => r.is_duplicate).length;
   const dupIncludedCount = rows.filter(r => r.is_duplicate && r.include).length;
   const toImportCount = rows.filter(r => r.include).length;
+
+  /** Linhas exibidas após aplicar o filtro "só duplicatas". */
+  const visibleRows = showOnlyDupes ? rows.filter(r => r.is_duplicate) : rows;
 
   const importMutation = useMutation({
     mutationFn: async () => {
