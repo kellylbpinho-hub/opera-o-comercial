@@ -12,7 +12,8 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { Pencil, MessageCircle, Phone, Instagram, MapPin, ExternalLink, Trash2 } from "lucide-react";
+import { Pencil, MessageCircle, Phone, Instagram, MapPin, ExternalLink, Trash2, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 import {
   buildWhatsappLink,
   getWhatsappMessage,
