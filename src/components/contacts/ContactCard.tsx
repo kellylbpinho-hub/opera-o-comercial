@@ -151,6 +151,9 @@ export default function ContactCard({
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-semibold text-sm">{c.company_name}</span>
               <Badge variant="secondary" className="text-[10px] py-0 px-1.5">
+                {profile}
+              </Badge>
+              <Badge variant="outline" className="text-[10px] py-0 px-1.5">
                 {PROFILE_LABELS[profile]}
               </Badge>
             </div>
