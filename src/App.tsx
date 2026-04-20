@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { IndustryProvider } from "@/contexts/IndustryContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import AppLayout from "@/components/AppLayout";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import RealtimeNotifications from "@/components/RealtimeNotifications";
