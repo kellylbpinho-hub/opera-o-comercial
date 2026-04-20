@@ -58,6 +58,7 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
   const [filterTag, setFilterTag] = useState("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<any | null>(null);
+  const [deleting, setDeleting] = useState<any | null>(null);
 
   const { data: cities } = useQuery({
     queryKey: ["cities"],
@@ -332,7 +333,30 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
             />
           )}
         </DialogContent>
-      </Dialog>
+      <AlertDialog open={!!deleting} onOpenChange={(open) => !open && setDeleting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover contato?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleting ? `O contato "${deleting.company_name}" será removido.` : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (!deleting) return;
+                softDeleteMutation.mutate(deleting.id);
+                setDeleting(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       <div className="flex gap-2 items-center flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
@@ -452,27 +476,7 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
                 selected={selected.has(c.id)}
                 onToggleSelect={() => toggleSelect(c.id)}
                 onEdit={() => setEditing(c)}
-                trailingActions={
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-10 px-3 text-destructive hover:text-destructive" title="Remover">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Remover contato?</AlertDialogTitle>
-                        <AlertDialogDescription>O contato "{c.company_name}" será removido.</AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => softDeleteMutation.mutate(c.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                          Remover
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                }
+                onRemove={() => setDeleting(c)}
               />
             ))}
             {!isLoading && contacts.length === 0 && (search || activeFilters > 0) && (
