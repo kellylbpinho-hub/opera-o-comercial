@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, Package, Users, MapPin, FileText } from "lucide-react";
+import { Sun, Package, Users, MapPin, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -8,9 +8,11 @@ interface NavItem {
   icon: React.ElementType;
 }
 
+// "Hoje" é a home mobile (substitui o Dashboard só no bottom nav).
+// Em desktop o Dashboard segue acessível em "/" via sidebar.
 const navItems: NavItem[] = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/lote", label: "Hoje", icon: Package },
+  { to: "/today", label: "Hoje", icon: Sun },
+  { to: "/lote", label: "Carteira", icon: Package },
   { to: "/leads", label: "Leads", icon: Users },
   { to: "/prospeccao", label: "Prospectar", icon: MapPin },
   { to: "/importacoes", label: "Importar", icon: FileText },
