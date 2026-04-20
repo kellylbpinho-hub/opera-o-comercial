@@ -314,35 +314,90 @@ export default function ImportsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.slice(0, 200).map((r, i) => (
-                  <TableRow key={i} className={r.is_duplicate ? "bg-amber-500/5" : ""}>
-                    <TableCell>
-                      <Checkbox checked={!!r.include} onCheckedChange={() => toggleInclude(i)} />
-                    </TableCell>
-                    <TableCell className="font-medium">{r.company_name}</TableCell>
-                    <TableCell>{r.phone_raw || "—"}</TableCell>
-                    <TableCell className="hidden sm:table-cell">{r.city_name || "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">{r.category}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      {r.is_duplicate ? (
-                        <Badge variant="outline" className="border-amber-500 text-amber-700 dark:text-amber-400 text-xs">
-                          ⚠️ Já na carteira
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-xs">Novo</Badge>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {visibleRows.slice(0, 200).map((r) => {
+                  const realIdx = rows.indexOf(r);
+                  return (
+                    <TableRow key={realIdx} className={r.is_duplicate ? "bg-amber-500/5" : ""}>
+                      <TableCell>
+                        <Checkbox checked={!!r.include} onCheckedChange={() => toggleInclude(realIdx)} />
+                      </TableCell>
+                      <TableCell className="font-medium">{r.company_name}</TableCell>
+                      <TableCell>{r.phone_raw || "—"}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{r.city_name || "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">{r.category}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {r.is_duplicate ? (
+                          <Badge variant="outline" className="border-amber-500 text-amber-700 dark:text-amber-400 text-xs">
+                            ⚠️ Já na carteira
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-xs">Novo</Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
-            {rows.length > 200 && (
-              <p className="text-xs text-muted-foreground p-2 text-center">Mostrando 200 de {rows.length} linhas. Todas serão processadas.</p>
+            {visibleRows.length > 200 && (
+              <p className="text-xs text-muted-foreground p-2 text-center">Mostrando 200 de {visibleRows.length} linhas. Todas serão processadas.</p>
+            )}
+            {visibleRows.length === 0 && (
+              <p className="text-sm text-muted-foreground p-6 text-center">Nenhuma linha para exibir com o filtro atual.</p>
             )}
           </div>
         </>
+      )}
+
+      {imported && report && (
+        <Card className="shadow-sm border-accent/30">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-accent" />
+              Resumo da importação
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="rounded-md border p-3 bg-card">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <CheckCircle className="h-3.5 w-3.5 text-accent" />
+                  Novos importados
+                </div>
+                <p className="text-2xl font-bold mt-1">{report.newOk}</p>
+              </div>
+              <div className="rounded-md border border-amber-500/30 p-3 bg-amber-500/5">
+                <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400">
+                  <ShieldAlert className="h-3.5 w-3.5" />
+                  Duplicatas importadas
+                </div>
+                <p className="text-2xl font-bold mt-1">{report.dupeOk}</p>
+              </div>
+              <div className="rounded-md border p-3 bg-muted/30">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <XCircle className="h-3.5 w-3.5" />
+                  Duplicatas ignoradas
+                </div>
+                <p className="text-2xl font-bold mt-1">{report.dupeIgnored}</p>
+              </div>
+              <div className="rounded-md border p-3 bg-card">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <FileText className="h-3.5 w-3.5" />
+                  Total processado
+                </div>
+                <p className="text-2xl font-bold mt-1">{report.total}</p>
+              </div>
+            </div>
+            {report.errorsCount > 0 && (
+              <p className="text-xs text-destructive mt-3 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                {report.errorsCount} linha(s) com erro — veja detalhes abaixo.
+              </p>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {imported && errors.length > 0 && (
