@@ -214,7 +214,7 @@ export default function ImportsPage() {
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <h1 className="text-2xl font-bold tracking-tight">Importações</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Importar contatos</h1>
 
       <Card className="shadow-sm">
         <CardHeader><CardTitle className="text-base">Upload CSV</CardTitle></CardHeader>
@@ -282,6 +282,22 @@ export default function ImportsPage() {
                   Desmarcar todas
                 </Button>
               </div>
+            </div>
+          )}
+
+          {dupCount > 0 && (
+            <div className="flex items-center gap-2 px-1">
+              <Switch
+                id="only-dupes"
+                checked={showOnlyDupes}
+                onCheckedChange={setShowOnlyDupes}
+              />
+              <Label htmlFor="only-dupes" className="text-sm cursor-pointer">
+                Mostrar apenas duplicatas
+              </Label>
+              <span className="text-xs text-muted-foreground ml-auto">
+                Exibindo {visibleRows.length} de {rows.length}
+              </span>
             </div>
           )}
 
