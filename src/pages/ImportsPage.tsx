@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useIndustry } from "@/contexts/IndustryContext";
@@ -35,7 +35,6 @@ export default function ImportsPage() {
   const { industryId, industryKey } = useIndustry();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const fileRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [imported, setImported] = useState(false);
   const [errors, setErrors] = useState<ParsedRow[]>([]);
@@ -226,10 +225,24 @@ export default function ImportsPage() {
             A coluna <strong>categoria</strong> aceita: <code>ATIVO</code>, <code>INATIVO</code>, <code>NOVO_MAPS</code>, <code>NOVO_MANUAL</code>.
             Não confunda com a marca (Kapazi, Forte Plástico, Imprimax) — a marca vem do seletor de Marca no topo.
           </p>
-          <input ref={fileRef} type="file" accept=".csv" onChange={handleFile} className="hidden" />
-          <Button variant="outline" onClick={() => fileRef.current?.click()}>
-            <Upload className="h-4 w-4 mr-2" />Selecionar arquivo
-          </Button>
+          <Label
+            htmlFor="csv-file-input"
+            className="inline-flex items-center justify-center gap-2 h-10 px-4 py-2 rounded-md border border-input bg-background text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer select-none w-full sm:w-auto"
+          >
+            <Upload className="h-4 w-4" />
+            Selecionar arquivo
+          </Label>
+          <input
+            id="csv-file-input"
+            type="file"
+            accept=".csv,text/csv"
+            onChange={(e) => {
+              handleFile(e);
+              // permite re-selecionar o mesmo arquivo em seguida
+              e.target.value = "";
+            }}
+            className="sr-only"
+          />
         </CardContent>
       </Card>
 
