@@ -64,7 +64,9 @@ export default function ImportsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const text = await file.text();
+    // Lê o arquivo e corrige mojibake (CSV salvo como UTF-8 contendo bytes Latin-1).
+    const rawText = await file.text();
+    const text = fixMojibake(rawText);
     const lines = text.split(/\r?\n/).filter(l => l.trim());
     if (lines.length < 2) { toast.error("Arquivo vazio ou sem dados."); return; }
 
