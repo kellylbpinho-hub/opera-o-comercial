@@ -31,6 +31,24 @@ interface ParsedRow {
 
 const VALID_CATEGORIES = ["ATIVO", "INATIVO", "NOVO_MAPS", "NOVO_MANUAL"];
 
+/**
+ * Corrige mojibake (UTF-8 lido como Latin-1 e re-codificado como UTF-8).
+ * Ex.: "BelÃ©m" -> "Belém", "BraganÃ§a" -> "Bragança".
+ * Aplica heurística: só tenta consertar se a string contiver "Ã" ou "Â".
+ */
+function fixMojibake(s: string): string {
+  if (!s || (!s.includes("Ã") && !s.includes("Â"))) return s;
+  try {
+    // Re-interpreta os bytes como Latin-1 e decodifica como UTF-8
+    const bytes = new Uint8Array(s.length);
+    for (let i = 0; i < s.length; i++) bytes[i] = s.charCodeAt(i) & 0xff;
+    const fixed = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    return fixed;
+  } catch {
+    return s;
+  }
+}
+
 export default function ImportsPage() {
   const { industryId, industryKey } = useIndustry();
   const { user } = useAuth();
@@ -46,7 +64,9 @@ export default function ImportsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const text = await file.text();
+    // Lê o arquivo e corrige mojibake (CSV salvo como UTF-8 contendo bytes Latin-1).
+    const rawText = await file.text();
+    const text = fixMojibake(rawText);
     const lines = text.split(/\r?\n/).filter(l => l.trim());
     if (lines.length < 2) { toast.error("Arquivo vazio ou sem dados."); return; }
 
