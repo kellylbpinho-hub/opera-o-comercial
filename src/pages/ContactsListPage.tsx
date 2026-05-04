@@ -414,8 +414,15 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
               ))}
             </SelectContent>
           </Select>
+          <Select value={filterConvStatus} onValueChange={v => { setFilterConvStatus(v); setPage(0); }}>
+            <SelectTrigger className="w-48"><SelectValue placeholder="Status conversa" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos status conversa</SelectItem>
+              {CONVERSATION_STATUS_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
           {activeFilters > 0 && (
-            <Button variant="ghost" size="sm" onClick={() => { setFilterCity("all"); setFilterNiche("all"); setFilterStatus("all"); setFilterTag("all"); setPage(0); }}>
+            <Button variant="ghost" size="sm" onClick={() => { setFilterCity("all"); setFilterNiche("all"); setFilterStatus("all"); setFilterTag("all"); setFilterConvStatus("all"); setPage(0); }}>
               Limpar filtros
             </Button>
           )}
