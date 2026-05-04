@@ -10,13 +10,18 @@ export type ClientProfile =
 
 export const WHATSAPP_MESSAGES: Record<ClientProfile, string> = {
   // Mensagem 1 — Cliente NOVO (prospecção geral, vindo do Maps / fora da carteira)
-  PROSPECT: `Olá, tudo bem? 😊
+  PROSPECT: `Oi! Tudo bem? 😊
 
-Sou a Kelly, representante comercial da Kapazi, Forte Plástico e Imprimax aqui na sua região.
+Meu nome é Kelly Almeida, trabalho com soluções para ponto de venda com foco em mix, exposição e aumento de giro.
 
-Trabalho com produtos que aumentam sua lucratividade e giro de estoque. Posso te mostrar como?
+Essa semana estou organizando minha agenda de visitas na região e separei algumas oportunidades interessantes de reposição e ajuste de mix, principalmente em itens com alta saída.
 
-Me chama que a gente conversa! 👊`,
+Gostaria de passar para te mostrar isso pessoalmente e alinhar algumas estratégias para este mês.
+
+🔗 Conheça um pouco do meu trabalho:
+https://kellylbpinho-hub.github.io/kellyk2/
+
+Qual dia e horário fica melhor para você?`,
 
   // Mensagem 2 — Cliente INATIVO (na carteira mas sem comprar)
   INACTIVE: `Olá, tudo bem? 😊
