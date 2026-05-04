@@ -122,6 +122,7 @@ export default function TemplatesPage() {
               <TableHead>Estágio</TableHead>
               <TableHead>Texto</TableHead>
               <TableHead>Ativo</TableHead>
+              <TableHead>Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
