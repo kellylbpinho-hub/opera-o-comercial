@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 
 const CATEGORIES = [
   { value: "NOVO_MAPS", label: "Novo (Maps)" },
@@ -30,6 +30,7 @@ export default function TemplatesPage() {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ category: "", stage: "", template_text: "" });
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
 
   const { data: templates } = useQuery({
     queryKey: ["templates", industryId, modeId],
@@ -59,6 +60,23 @@ export default function TemplatesPage() {
       queryClient.invalidateQueries({ queryKey: ["templates"] });
       setDialogOpen(false);
       setForm({ category: "", stage: "", template_text: "" });
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      if (!editing) throw new Error("Nada para salvar.");
+      const { error } = await supabase
+        .from("templates")
+        .update({ template_text: editing.text })
+        .eq("id", editing.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Template atualizado!");
+      queryClient.invalidateQueries({ queryKey: ["templates"] });
+      setEditing(null);
     },
     onError: (err: any) => toast.error(err.message),
   });
@@ -113,14 +131,38 @@ export default function TemplatesPage() {
                 <TableCell>{t.stage}</TableCell>
                 <TableCell className="max-w-md truncate">{t.template_text}</TableCell>
                 <TableCell>{t.is_active ? "✓" : "—"}</TableCell>
+                <TableCell>
+                  <Button size="sm" variant="outline" onClick={() => setEditing({ id: t.id, text: t.template_text })}>
+                    <Pencil className="h-3 w-3 mr-1" />Editar
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
             {(!templates || templates.length === 0) && (
-              <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Nenhum template encontrado.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum template encontrado.</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar template</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Textarea
+              value={editing?.text ?? ""}
+              onChange={e => setEditing(prev => prev ? { ...prev, text: e.target.value } : prev)}
+              rows={10}
+            />
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+              <Button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending || !editing?.text.trim()}>
+                Salvar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
