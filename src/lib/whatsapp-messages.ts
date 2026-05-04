@@ -14,11 +14,12 @@ export const WHATSAPP_MESSAGES: Record<ClientProfile, string> = {
 
 Meu nome é Kelly Almeida, trabalho com soluções para ponto de venda com foco em mix, exposição e aumento de giro.
 
-Essa semana estou organizando minha agenda de visitas na região e separei algumas oportunidades interessantes de reposição e ajuste de mix, principalmente em itens com alta saída.
+Essa semana estou organizando minha agenda de visitas na região e separei algumas oportunidades interessantes de programação e ajuste de mix, principalmente em itens com alta saída.
 
 Gostaria de passar para te mostrar isso pessoalmente e alinhar algumas estratégias para este mês.
 
 🔗 Conheça um pouco do meu trabalho:
+
 https://kellylbpinho-hub.github.io/kellyk2/
 
 Qual dia e horário fica melhor para você?`,
