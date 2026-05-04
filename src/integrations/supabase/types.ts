@@ -65,6 +65,7 @@ export type Database = {
           company_name: string
           company_name_normalized: string | null
           contact_name: string | null
+          conversation_status: string
           created_at: string
           days_without_buying: number | null
           deleted_at: string | null
@@ -96,6 +97,7 @@ export type Database = {
           company_name: string
           company_name_normalized?: string | null
           contact_name?: string | null
+          conversation_status?: string
           created_at?: string
           days_without_buying?: number | null
           deleted_at?: string | null
@@ -127,6 +129,7 @@ export type Database = {
           company_name?: string
           company_name_normalized?: string | null
           contact_name?: string | null
+          conversation_status?: string
           created_at?: string
           days_without_buying?: number | null
           deleted_at?: string | null

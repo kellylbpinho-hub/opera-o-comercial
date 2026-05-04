@@ -23,6 +23,7 @@ import DupeModal, { type DupeCandidate } from "@/components/contacts/DupeModal";
 import ContactCard from "@/components/contacts/ContactCard";
 import { downloadCSV } from "@/lib/csv-export";
 import { buildWhatsappLink, getWhatsappMessage, PROFILE_LABELS, getClientProfile, INDUSTRY_CATALOG, formatTag } from "@/lib/whatsapp-messages";
+import { CONVERSATION_STATUS_OPTIONS } from "@/lib/conversation-status";
 
 interface ContactsListPageProps {
   category: "ATIVO" | "INATIVO";
@@ -56,6 +57,7 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
   const [filterNiche, setFilterNiche] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterTag, setFilterTag] = useState("all");
+  const [filterConvStatus, setFilterConvStatus] = useState("all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<any | null>(null);
   const [deleting, setDeleting] = useState<any | null>(null);
@@ -69,7 +71,7 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
   });
 
   const { data: contactsData, isLoading } = useQuery({
-    queryKey: ["contacts", category, industryId, search, page, filterCity, filterNiche, filterStatus, filterTag],
+    queryKey: ["contacts", category, industryId, search, page, filterCity, filterNiche, filterStatus, filterTag, filterConvStatus],
     queryFn: async () => {
       let q = supabase.from("contacts").select("*", { count: "exact" })
         .eq("category", category)
@@ -82,6 +84,7 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
       if (filterNiche !== "all") q = q.eq("niche", filterNiche);
       if (filterStatus !== "all") q = q.eq("status", filterStatus);
       if (filterTag !== "all") q = q.contains("industry_tags", [filterTag]);
+      if (filterConvStatus !== "all") q = q.eq("conversation_status", filterConvStatus);
       const { data, count } = await q;
       return { contacts: data ?? [], total: count ?? 0 };
     },
@@ -277,7 +280,7 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
     toast.success("CSV exportado!");
   };
 
-  const activeFilters = [filterCity, filterNiche, filterStatus, filterTag].filter(f => f !== "all").length;
+  const activeFilters = [filterCity, filterNiche, filterStatus, filterTag, filterConvStatus].filter(f => f !== "all").length;
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -411,8 +414,15 @@ export default function ContactsListPage({ category, title, source }: ContactsLi
               ))}
             </SelectContent>
           </Select>
+          <Select value={filterConvStatus} onValueChange={v => { setFilterConvStatus(v); setPage(0); }}>
+            <SelectTrigger className="w-48"><SelectValue placeholder="Status conversa" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos status conversa</SelectItem>
+              {CONVERSATION_STATUS_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
           {activeFilters > 0 && (
-            <Button variant="ghost" size="sm" onClick={() => { setFilterCity("all"); setFilterNiche("all"); setFilterStatus("all"); setFilterTag("all"); setPage(0); }}>
+            <Button variant="ghost" size="sm" onClick={() => { setFilterCity("all"); setFilterNiche("all"); setFilterStatus("all"); setFilterTag("all"); setFilterConvStatus("all"); setPage(0); }}>
               Limpar filtros
             </Button>
           )}

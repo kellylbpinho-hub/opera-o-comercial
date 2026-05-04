@@ -22,6 +22,13 @@ import {
   getClientProfile,
   formatTag,
 } from "@/lib/whatsapp-messages";
+import ConversationStatusBadge from "@/components/conversations/ConversationStatusBadge";
+import QuickStatusSelect from "@/components/conversations/QuickStatusSelect";
+import FollowUpModal from "@/components/conversations/FollowUpModal";
+import ConversationTimeline from "@/components/conversations/ConversationTimeline";
+import { useConversationStatus } from "@/hooks/useConversationStatus";
+import type { ConversationStatus } from "@/lib/conversation-status";
+import { ClipboardList, History } from "lucide-react";
 
 interface ContactCardProps {
   contact: any;
@@ -59,6 +66,9 @@ export default function ContactCard({
   const [copied, setCopied] = useState(false);
   const [offsetX, setOffsetX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [followUpOpen, setFollowUpOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const statusMutation = useConversationStatus();
   const touchStartX = useRef<number | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
@@ -71,14 +81,29 @@ export default function ContactCard({
   const igLink = buildInstagramDirectLink(c.instagram);
 
   const tags: string[] = Array.isArray(c.industry_tags) ? c.industry_tags : [];
+  const convStatus: ConversationStatus =
+    (c.conversation_status as ConversationStatus) || "NAO_ENVIADO";
 
   const handleWhatsAppClick = () => {
     if (!waLink) return;
     if (!message?.trim()) {
       window.open(waLink, "_blank", "noopener,noreferrer");
+      autoMarkSent();
       return;
     }
     setDrawerOpen(true);
+  };
+
+  const autoMarkSent = () => {
+    if (convStatus === "NAO_ENVIADO") {
+      statusMutation.mutate({
+        contactId: c.id,
+        newStatus: "ENVIADO",
+        previousStatus: convStatus,
+        notes: "Mensagem aberta no WhatsApp",
+        silent: true,
+      });
+    }
   };
 
   const resetSwipe = () => setOffsetX(0);
@@ -242,7 +267,36 @@ export default function ContactCard({
                 )}
                 {categoryLabel && <Badge variant="outline" className="text-[10px] py-0 px-1.5">{categoryLabel}</Badge>}
                 {c.status && <Badge variant="secondary" className="text-[10px] py-0 px-1.5">{STATUS_LABELS[c.status] ?? c.status}</Badge>}
+                <ConversationStatusBadge status={convStatus} />
               </div>
+
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <QuickStatusSelect contactId={c.id} current={convStatus} className="h-8 text-xs flex-1 min-w-[140px]" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2"
+                  onClick={() => setFollowUpOpen(true)}
+                  title="Registrar follow-up"
+                >
+                  <ClipboardList className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2"
+                  onClick={() => setHistoryOpen((v) => !v)}
+                  title="Histórico"
+                >
+                  <History className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+
+              {historyOpen && (
+                <div className="pt-1">
+                  <ConversationTimeline contactId={c.id} />
+                </div>
+              )}
 
               {tags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
@@ -359,7 +413,10 @@ export default function ContactCard({
                 href={selectedChannel === "instagram" ? igLink! : (editedWaLink ?? waLink!)}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => setDrawerOpen(false)}
+                onClick={() => {
+                  setDrawerOpen(false);
+                  autoMarkSent();
+                }}
               >
                 <ExternalLink className="h-4 w-4 mr-1.5" />
                 {selectedChannel === "instagram" ? "Enviar no Instagram" : "Enviar no WhatsApp"}
@@ -368,6 +425,14 @@ export default function ContactCard({
           </DrawerFooter>
         </DrawerContent>
       </Drawer>
+
+      <FollowUpModal
+        open={followUpOpen}
+        onOpenChange={setFollowUpOpen}
+        contactId={c.id}
+        contactName={c.company_name}
+        currentStatus={convStatus}
+      />
     </>
   );
 }
